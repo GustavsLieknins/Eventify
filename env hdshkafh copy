@@ -1,6 +1,6 @@
 APP_NAME=Laravel
 APP_ENV=local
-APP_KEY=base64:HWoh89WxmShniT3OJkACP/HIHMHKdLw13/n2Tl0/NiI=
+APP_KEY=base64:RM+ZW9UI13xkeQ0UEK8cJNtTIlOMZXrtXJ0tMTKTXqg=
 APP_DEBUG=true
 APP_URL=http://localhost
 
@@ -34,7 +34,7 @@ SESSION_PATH=/
 SESSION_DOMAIN=null
 
 # HasData
-HASDATA_API_KEY=3a5cc73b-6ae6-4ea5-82f3-e17232166a3c
+HASDATA_API_KEY=8f3307e0-d481-4236-a72f-81967002cacc
 HASDATA_BASE_URL=https://api.hasdata.com
 
 # .env

@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './Dashboard.css';
 
+import { Link } from '@inertiajs/react';
+import { Inertia } from '@inertiajs/inertia';
+
+
 function getCityFromAddress(addressArr) {
   if (!Array.isArray(addressArr) || addressArr.length === 0) return '';
   const last = addressArr[addressArr.length - 1];
@@ -172,7 +176,7 @@ function mapsLinkFromHotel(h) {
    Pretty Lists (Flights/Hotels)
 --------------------------------*/
 
-function FlightList({ data }) {
+function FlightList({ data, selectedFlight, setSelectedFlight  }) {
   if (data === null) {
     return <div className="muted">No flights loaded yet.</div>;
   }
@@ -200,7 +204,8 @@ function FlightList({ data }) {
       <div className="cards-stack">
         {options.map((f, i) => (
           <div className="card flight-card" key={i}>
-            <input type="radio" name="flight-select" className="radio-select" />
+            <input type="radio" name="flight-select" className="radio-select"             checked={selectedFlight === i}
+            onChange={() => setSelectedFlight(i)} />
             <div className="card-head">
               <div className="route">
                 <span className="iata">{f.fromId || '—'}</span>
@@ -264,7 +269,7 @@ function FlightList({ data }) {
   );
 }
 
-function HotelList({ hotels }) {
+function HotelList({ hotels, selectedHotel, setSelectedHotel  }) {
   if (!hotels) {
     return <div className="muted">No hotels loaded yet.</div>;
   }
@@ -277,7 +282,8 @@ function HotelList({ hotels }) {
     <div className="cards-stack">
       {items.slice(0, 12).map((h, i) => (
         <div className="card hotel-card" key={i}>
-        <input type="radio" name="hotels-select" class="radio-select" />
+        <input type="radio" name="hotels-select" class="radio-select"             checked={selectedHotel === i}
+            onChange={() => setSelectedHotel(i)} />
           <div className="hotel-grid">
             <div className="thumb-wrap">
               {h.thumbnail
@@ -345,6 +351,9 @@ export default function Dashboard() {
   const [hotels, setHotels] = useState([]);
 
   const [userId, setUserId] = useState(null);
+
+  const [selectedFlight, setSelectedFlight] = useState(null);
+  const [selectedHotel, setSelectedHotel] = useState(null);
 
 useEffect(() => {
   axios.get('/api/user')
@@ -541,7 +550,12 @@ useEffect(() => {
 </div> */}
 
 
-
+{/* <Link
+                                            href={route('bookmarks')}
+                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                                        >
+                                            Log in
+                                        </Link> */}
       <header className="search-header">
         <div className="search-inner">
           <h1 className="app-name-title">Eventify</h1>
@@ -681,121 +695,46 @@ useEffect(() => {
             </header>
 
             <div className="modal-body">
-              {/* <div className="travel-form">
-                <div>
-                  <label>From (IATA)</label>
-                  <input
-                    value={tripCfg.from}
-                    onChange={(e) =>
-                      setTripCfg({ ...tripCfg, from: e.target.value.toUpperCase() })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label>Stay nights</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={tripCfg.stayNights}
-                    onChange={(e) =>
-                      setTripCfg({ ...tripCfg, stayNights: Number(e.target.value) })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label>Arrival (IATA)</label>
-                  <input
-                    value={arrivalOverride}
-                    onChange={(e) => setArrivalOverride(e.target.value)}
-                    placeholder="e.g. OSL"
-                  />
-                </div>
-
-                <div>
-                  <label>Outbound date</label>
-                  <input
-                    type="date"
-                    value={outboundDate}
-                    onChange={(e) => setOutboundDate(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Return date</label>
-                  <input
-                    type="date"
-                    value={returnDate}
-                    onChange={(e) => setReturnDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="travel-buttons">
-                  <button onClick={refreshFlights} className="btn">
-                    Update flights
-                  </button>
-                  <button onClick={refreshHotels} className="btn">
-                    Update hotels
-                  </button>
-                </div>
-              </div> */}
-
-              {/* <div className="travel-columns"> */}
               <form
   className="travel-columns"
   onSubmit={async (e) => {
     e.preventDefault();
 
-    const payload = { flights, hotels, title: "My Trip" };
+    const flightOptions = extractFlightOptions(flights).map(normalizeFlightOption);
+    const hotelOptions = (hotels || []).map(normalizeHotel);
 
-    const getCookie = (name) =>
-      document.cookie
-        .split('; ')
-        .find(row => row.startsWith(name + '='))
-        ?.split('=')[1];
+    const payload = {
+      flights: selectedFlight != null ? [flightOptions[selectedFlight]] : [],
+      hotels: selectedHotel != null ? [hotelOptions[selectedHotel]] : [],
+      title: "My Trip",
+    };
 
     try {
-      // 1) Ensure CSRF cookie exists (sets XSRF-TOKEN + laravel_session)
-      await fetch('/sanctum/csrf-cookie', {
-        credentials: 'include',
-      });
+      const res = await axios.post('/api/trips', payload);
 
-      // 2) POST with credentials + XSRF header
-      const res = await fetch('/trips', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          // IMPORTANT: send the XSRF token from the cookie
-          'X-XSRF-TOKEN': decodeURIComponent(getCookie('XSRF-TOKEN') || ''),
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
 
-      if (!res.ok) {
-        const text = await res.text();
-        console.error('POST /trips failed', res.status, text);
-        // alert(`Failed to save trip (${res.status}).`); // PIEVIENO PAZINOJUMU
-        return;
-      }
-
-      const data = await res.json();
-    //   alert('Trip saved successfully!');// PIEVIENO PAZINOJUMU
-      console.log(data.trip);
+      console.log('Trip saved:', res.data.trip);
+      alert('✅ Trip saved successfully!');
     } catch (err) {
-      console.error(err);
-    //   alert('Error saving trip.');// PIEVIENO PAZINOJUMU
+      if (err.response?.status === 401) {
+        const data = err.response.data;
+        window.location.href = data.redirect || '/login';
+      } else {
+        console.error('Trip save failed:', err.response?.data || err.message);
+        alert('❌ Failed to save trip. Check console.');
+      }
     }
   }}
 >
 
-  <button className="button-submit">Bookmark this trip</button>
+
+
+  <button className="button-submit" type="submit">Bookmark this trip</button>
 
   <div className="travel-column">
     <h3>Flights</h3>
-    <FlightList data={flights} />
+    <FlightList data={flights}   selectedFlight={selectedFlight} 
+  setSelectedFlight={setSelectedFlight}  />
     <input type="hidden" name="user_id" value={userId ?? 'null'} />
     <details className="raw-toggle">
       <summary>Show raw</summary>
@@ -805,7 +744,8 @@ useEffect(() => {
 
   <div className="travel-column">
     <h3>Hotels near venue</h3>
-    <HotelList hotels={hotels} />
+    <HotelList hotels={hotels}   selectedHotel={selectedHotel} 
+  setSelectedHotel={setSelectedHotel}  />
     <details className="raw-toggle">
       <summary>Show raw</summary>
       <pre className="pre-json">{JSON.stringify(hotels, null, 2)}</pre>

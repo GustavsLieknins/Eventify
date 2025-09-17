@@ -10,28 +10,35 @@ class TripController extends Controller
     // Save a new trip
     public function store(Request $request)
     {
+        if (!auth()->check()) {
+            return response()->json([
+                'message'  => 'You must be logged in to save a trip.',
+                'redirect' => route('login'),
+            ], 401);
+        }
+    
         $data = $request->validate([
             'title'   => 'nullable|string|max:255',
             'flights' => 'required|array',
             'hotels'  => 'required|array',
         ]);
-
-        // Add the authenticated user's ID
-        $data['user_id'] = auth()->id();
-
-        // Save the trip
+    
         $trip = BookmarkedTrip::create([
-            'user_id' => $data['user_id'],
+            'user_id' => auth()->id(),
             'title'   => $data['title'],
             'flights' => json_encode($data['flights']),
             'hotels'  => json_encode($data['hotels']),
         ]);
-
+    
         return response()->json([
             'message' => 'Trip saved successfully',
-            'trip'    => $trip
-        ], 201);
+            'trip'    => $trip,
+        ]);
     }
+    
+    
+    
+    
 
     // Get all trips for the logged-in user
     public function index()

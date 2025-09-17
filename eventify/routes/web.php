@@ -9,10 +9,11 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TravelController;
 
 use App\Http\Controllers\TripController;
-Route::get('/trips', [TripController::class, 'index']);       // get all trips
-Route::get('/trips/{id}', [TripController::class, 'show']);   // get one trip
-Route::post('/trips', [TripController::class, 'store']);      // save new trip
-
+// Route::middleware(['auth'])->group(function () {
+//     Route::get('/trips', [TripController::class, 'index']);       // get all trips
+//     Route::get('/trips/{id}', [TripController::class, 'show']);   // get one trip
+//     Route::post('/trips', [TripController::class, 'store']);      // save new trip
+// });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json(['id' => $request->user()->id]);
@@ -21,9 +22,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 ///////////////
 
 
-Route::get('/bookmarks', fn() => Inertia::render('Bookmarks'))->name('bookmarks');
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
 
+    Route::get('/bookmarks', function () {
+        return Inertia::render('Bookmarks');
+    })->name('bookmarks');
+});
 
 
 //////////////

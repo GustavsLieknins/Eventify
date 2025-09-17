@@ -4,11 +4,14 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TravelController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')->group(function () {
-    Route::get('/events', [EventController::class, 'search']);
-    Route::get('/travel/flights', [TravelController::class, 'flights']);
-    Route::get('/travel/hotels', [TravelController::class, 'hotels']);
+use App\Http\Controllers\TripController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/trips', [TripController::class, 'index']);
+    Route::get('/trips/{id}', [TripController::class, 'show']);
+    Route::post('/trips', [TripController::class, 'store']);
 });
+
 
 
 
