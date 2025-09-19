@@ -54,5 +54,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/share-links', [ShareLinkController::class, 'store'])->name('share.store');
 });
 
+use App\Http\Controllers\Auth\SocialAuthController;
+
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+    ->whereIn('provider', ['google','github'])
+    ->name('social.redirect');
+
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+    ->whereIn('provider', ['google','github'])
+    ->name('social.callback');
+
 
 require __DIR__.'/auth.php';

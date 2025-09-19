@@ -24,11 +24,10 @@ function Toasts({ toasts, onDismiss }) {
     </div>
   );
 
-  // Render to <body> so it stacks above sticky nav/backdrops regardless of z-index traps
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     return createPortal(content, document.body);
   }
-  return content; // SSR safety
+  return content;
 }
 
 /* ------------------------------
@@ -83,21 +82,15 @@ const DEFAULT_GL = 'uk';
 const DEFAULT_HL = 'en';
 const DEFAULT_EVENT_LOCATION = 'United Kingdom';
 
-// Safe join
 const join = (arr, sep = ' • ') => (arr.filter(Boolean).join(sep));
-
-// Minutes -> "1h 35m"
 function fmtDuration(mins) {
   if (!mins || isNaN(mins)) return '';
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return `${h ? `${h}h ` : ''}${m ? `${m}m` : ''}`.trim();
 }
-
-// Number -> e.g., "1,234"
 const fmtInt = (n) => (typeof n === 'number' ? n.toLocaleString() : n);
 
-// Price with currency symbol if we can infer it from request URL
 function inferCurrencySymbol(flightsData) {
   const url = flightsData?.requestMetadata?.url || '';
   const match = url.match(/curr=([A-Z]{3})/);
@@ -111,7 +104,6 @@ function inferCurrencySymbol(flightsData) {
   }
 }
 
-// "YYYY-MM-DD HH:MM" -> "24 Sep • 08:00"
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtDateTimeSimple(s) {
   if (!s || typeof s !== 'string') return '';
@@ -122,7 +114,7 @@ function fmtDateTimeSimple(s) {
   return time ? `${dd} • ${time}` : dd;
 }
 
-/* Flights: extract & normalize options from various shapes */
+/* Flights helpers */
 function extractFlightOptions(data) {
   if (!data) return [];
   const list =
@@ -171,7 +163,7 @@ function normalizeFlightOption(opt) {
   };
 }
 
-/* Hotels: handle typical fields safely */
+/* Hotels */
 function normalizeHotel(h) {
   return {
     title: h?.title || 'Hotel',
@@ -200,12 +192,8 @@ function mapsLinkFromHotel(h) {
    Pretty Lists (Flights/Hotels)
 --------------------------------*/
 function FlightList({ data, selectedFlight, setSelectedFlight  }) {
-  if (data === null) {
-    return <div className="muted">No flights loaded yet.</div>;
-  }
-  if (data?.error) {
-    return <div className="error">⚠️ {data.error}</div>;
-  }
+  if (data === null) return <div className="muted">No flights loaded yet.</div>;
+  if (data?.error) return <div className="error">⚠️ {data.error}</div>;
 
   const options = extractFlightOptions(data).map(normalizeFlightOption).slice(0, 10);
   const symbol = inferCurrencySymbol(data);
@@ -215,96 +203,88 @@ function FlightList({ data, selectedFlight, setSelectedFlight  }) {
     return (
       <div className="muted">
         No flights found. Try changing dates or arrival IATA.
-        {deepLink && (
-          <> <a className="inline-link" href={deepLink} target="_blank" rel="noreferrer">Open in Google Flights</a>.</>
-        )}
+        {deepLink && (<> <a className="inline-link" href={deepLink} target="_blank" rel="noreferrer">Open in Google Flights</a>.</>)}
       </div>
     );
   }
 
   return (
-    <>
-      <div className="cards-stack">
-        {options.map((f, i) => (
-          <div className="card flight-card" key={i}>
-            <input
-              type="radio"
-              name="flight-select"
-              className="radio-select"
-              checked={selectedFlight === i}
-              onChange={() => setSelectedFlight(i)}
-            />
-            <div className="card-head">
-              <div className="route">
-                <span className="iata">{f.fromId || '—'}</span>
-                <span className="arrow">→</span>
-                <span className="iata">{f.toId || '—'}</span>
-              </div>
-              {typeof f.price === 'number' && (
-                <div className="price-badge">{symbol}{fmtInt(f.price)}</div>
-              )}
+    <div className="cards-stack">
+      {options.map((f, i) => (
+        <div className="card flight-card" key={i}>
+          <input
+            type="radio"
+            name="flight-select"
+            className="radio-select"
+            checked={selectedFlight === i}
+            onChange={() => setSelectedFlight(i)}
+          />
+          <div className="card-head">
+            <div className="route">
+              <span className="iata">{f.fromId || '—'}</span>
+              <span className="arrow">→</span>
+              <span className="iata">{f.toId || '—'}</span>
             </div>
-
-            <div className="meta-row">
-              <span className="badge">{f.type}</span>
-              {f.travelClass && <span className="badge">{f.travelClass}</span>}
-              {f.totalDuration && <span className="badge">{fmtDuration(f.totalDuration)}</span>}
-              {f.airlines?.length > 0 && <span className="badge">{f.airlines.join(' + ')}</span>}
-            </div>
-
-            <div className="timing">
-              <div className="time-col">
-                <div className="time">{fmtDateTimeSimple(f.depart)}</div>
-                <div className="muted small">{f.fromName || 'Departure'}</div>
-              </div>
-              <div className="time-col">
-                <div className="time">{fmtDateTimeSimple(f.arrive)}</div>
-                <div className="muted small">{f.toName || 'Arrival'}</div>
-              </div>
-            </div>
-
-            {f.flightNumbers?.length > 0 && (
-              <div className="muted small">Flight: {f.flightNumbers.join(', ')}</div>
-            )}
-
-            {(typeof f.emissions?.differencePercent === 'number' || typeof f.emissions?.thisFlight === 'number') && (
-              <div className="emissions-row">
-                {typeof f.emissions?.differencePercent === 'number' && (
-                  <span
-                    className={`badge ${f.emissions.differencePercent <= 0 ? 'green' : 'red'}`}
-                    title="Compared to typical for this route"
-                  >
-                    {f.emissions.differencePercent > 0 ? '+' : ''}{f.emissions.differencePercent}% vs typical
-                  </span>
-                )}
-                {typeof f.emissions?.thisFlight === 'number' && (
-                  <span className="muted small">Est. {Math.round(f.emissions.thisFlight / 1000)} kg CO₂</span>
-                )}
-              </div>
-            )}
-
-            {deepLink && (
-              <div className="actions-row">
-                <a className="btn small" href={deepLink} target="_blank" rel="noreferrer">
-                  Open in Google Flights
-                </a>
-              </div>
+            {typeof f.price === 'number' && (
+              <div className="price-badge">{symbol}{fmtInt(f.price)}</div>
             )}
           </div>
-        ))}
-      </div>
-    </>
+
+          <div className="meta-row">
+            <span className="badge">{f.type}</span>
+            {f.travelClass && <span className="badge">{f.travelClass}</span>}
+            {f.totalDuration && <span className="badge">{fmtDuration(f.totalDuration)}</span>}
+            {f.airlines?.length > 0 && <span className="badge">{f.airlines.join(' + ')}</span>}
+          </div>
+
+          <div className="timing">
+            <div className="time-col">
+              <div className="time">{fmtDateTimeSimple(f.depart)}</div>
+              <div className="muted small">{f.fromName || 'Departure'}</div>
+            </div>
+            <div className="time-col">
+              <div className="time">{fmtDateTimeSimple(f.arrive)}</div>
+              <div className="muted small">{f.toName || 'Arrival'}</div>
+            </div>
+          </div>
+
+          {f.flightNumbers?.length > 0 && (
+            <div className="muted small">Flight: {f.flightNumbers.join(', ')}</div>
+          )}
+
+          {(typeof f.emissions?.differencePercent === 'number' || typeof f.emissions?.thisFlight === 'number') && (
+            <div className="emissions-row">
+              {typeof f.emissions?.differencePercent === 'number' && (
+                <span
+                  className={`badge ${f.emissions.differencePercent <= 0 ? 'green' : 'red'}`}
+                  title="Compared to typical for this route"
+                >
+                  {f.emissions.differencePercent > 0 ? '+' : ''}{f.emissions.differencePercent}% vs typical
+                </span>
+              )}
+              {typeof f.emissions?.thisFlight === 'number' && (
+                <span className="muted small">Est. {Math.round(f.emissions.thisFlight / 1000)} kg CO₂</span>
+              )}
+            </div>
+          )}
+
+          {deepLink && (
+            <div className="actions-row">
+              <a className="btn small" href={deepLink} target="_blank" rel="noreferrer">
+                Open in Google Flights
+              </a>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
 function HotelList({ hotels, selectedHotel, setSelectedHotel  }) {
-  if (!hotels) {
-    return <div className="muted">No hotels loaded yet.</div>;
-  }
+  if (!hotels) return <div className="muted">No hotels loaded yet.</div>;
   const items = (Array.isArray(hotels) ? hotels : []).map(normalizeHotel);
-  if (items.length === 0) {
-    return <div className="muted">No hotels found near this venue.</div>;
-  }
+  if (items.length === 0) return <div className="muted">No hotels found near this venue.</div>;
 
   return (
     <div className="cards-stack">
@@ -329,9 +309,7 @@ function HotelList({ hotels, selectedHotel, setSelectedHotel  }) {
                 <div className="hotel-title">
                   {h.website ? (
                     <a href={h.website} target="_blank" rel="noreferrer" className="card-link">{h.title}</a>
-                  ) : (
-                    h.title
-                  )}
+                  ) : (h.title)}
                 </div>
                 {(h.stars || h.type) && (
                   <div className="muted small">{join([h.type, h.stars ? `${h.stars}★` : ''])}</div>
@@ -348,7 +326,7 @@ function HotelList({ hotels, selectedHotel, setSelectedHotel  }) {
 
               {h.address && <div className="muted small">{h.address}</div>}
 
-              {Array.isArray(h.tags) && h.tags.length > 0 && (
+              {!!(h.tags?.length) && (
                 <div className="chip-row">
                   {h.tags.slice(0, 4).map((t, idx) => (
                     <span className="chip" key={idx}>{t}</span>
@@ -401,7 +379,6 @@ export default function Dashboard() {
 
   const [saving, setSaving] = useState(false);
 
-  // toasts
   const [toasts, setToasts] = useState([]);
   const pushToast = ({ title, message = '', tone = 'info', ttl = 3800 }) => {
     const id = _uid();
@@ -409,6 +386,62 @@ export default function Dashboard() {
     window.setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), ttl + 250);
   };
   const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
+
+  /* ---------- Suggestions helpers ---------- */
+  const popularArtists = ['Korn', 'Lady Gaga', 'Morgenshtern', 'Linkin Park'];
+  const quickDates = [
+    { label: 'Today', value: 'date:today' },
+    { label: 'This Weekend', value: 'date:weekend' },
+    { label: 'Next Week', value: 'date:next_week' },
+  ];
+  const quickCities = ['London', 'Riga', 'Stockholm', 'Manchester'];
+
+  // IMPORTANT: allow overrides so we don't rely on async state writes
+  const searchEvents = async (reset = true, overrides = {}) => {
+    setLoading(true);
+
+    const qVal     = (overrides.q ?? q) || '';
+    const whenVal  = overrides.when ?? when;
+    const locVal   = overrides.location ?? (location || DEFAULT_EVENT_LOCATION);
+    const startVal = reset ? 0 : pageStart;
+
+    if (reset) {
+      setEvents([]);
+      setPageStart(0);
+      setSelected(null);
+      setFlights(null);
+      setHotels([]);
+      setShowTravel(false);
+    }
+
+    try {
+      const { data } = await axios.get('/api/events', {
+        params: {
+          q: qVal,
+          location: locVal,
+          when: whenVal,
+          gl: DEFAULT_GL,
+          hl: DEFAULT_HL,
+          start: startVal,
+        },
+      });
+      const items = normalizeEvents(data);
+      setEvents((prev) => (reset ? items : [...prev, ...items]));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Quick chips -> pass overrides directly to the request (fixes stale-state bug)
+  const runQuickSearch = async (term = '', whenVal = '', city = '') => {
+    const loc = city ? `${city}, ${DEFAULT_EVENT_LOCATION}` : DEFAULT_EVENT_LOCATION;
+    setQ(term);
+    setWhen(whenVal || '');
+    setLocation(city ? loc : '');
+
+    setSearchTriggered(true);
+    await searchEvents(true, { q: term, when: whenVal || '', location: loc });
+  };
 
   // Modal lock + esc + body class for styling
   useEffect(() => {
@@ -429,34 +462,6 @@ export default function Dashboard() {
       window.removeEventListener('keydown', onKey);
     };
   }, [showTravel]);
-
-  const searchEvents = async (reset = true) => {
-    setLoading(true);
-    if (reset) {
-      setEvents([]);
-      setPageStart(0);
-      setSelected(null);
-      setFlights(null);
-      setHotels([]);
-      setShowTravel(false);
-    }
-    try {
-      const { data } = await axios.get('/api/events', {
-        params: {
-          q,
-          location: location || DEFAULT_EVENT_LOCATION,
-          when,
-          gl: DEFAULT_GL,
-          hl: DEFAULT_HL,
-          start: reset ? 0 : pageStart,
-        },
-      });
-      const items = normalizeEvents(data);
-      setEvents((prev) => (reset ? items : [...prev, ...items]));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadMore = async () => {
     setPageStart((prev) => prev + 10);
@@ -584,14 +589,14 @@ export default function Dashboard() {
     setSaving(true);
 
     try {
-      const ttl = 4800;             // how long to keep the toast visible
-      const notBefore = Date.now() + 800; // don't show for ~0.8s (covers the remount)
+      const ttl = 4800;
+      const notBefore = Date.now() + 800;
       sessionStorage.setItem('toastRelay', JSON.stringify({
         title: 'Trip saved!',
         message: '',
         tone: 'success',
         ttl,
-        until: Date.now() + (ttl + 12000), // keep relay in storage long enough
+        until: Date.now() + (ttl + 12000),
         notBefore,
         _shown: false
       }));
@@ -600,8 +605,6 @@ export default function Dashboard() {
     router.post('/bookmarks', payload, {
       preserveScroll: true,
       onSuccess: () => {
-        // If your controller redirects already, this may not run.
-        // But if it returns 303-less, ensure we land on Bookmarks:
         router.visit('/bookmarks', { replace: true });
       },
       onError: () => {
@@ -612,87 +615,248 @@ export default function Dashboard() {
     });
   };
 
+  const showSuggestions = !loading && events.length === 0 && !searchTriggered;
+
   return (
     <>
       <TopNav active="dashboard" />
-      <div className={`main-wrapper ${searchTriggered ? 'search-active' : ''}`}>
+      <div
+        className={`main-wrapper ${searchTriggered ? 'search-active' : ''} ${showSuggestions ? 'landing' : ''}`}
+      >
         <Toasts toasts={toasts} onDismiss={(id) => setToasts(ts => ts.filter(t => t.id !== id))} />
 
-        <header className="search-header">
-          <div className="search-inner">
-            <h1 className="app-name-title">Eventify</h1>
+        <header className={`search-header ${showSuggestions ? 'is-landing' : ''}`}>
+  <div className="search-inner">
+    <h1 className="app-name-title">Eventify</h1>
 
-            <form
-              className="actions-wrapper"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setSearchTriggered(true);
-                searchEvents(true);
-              }}
-            >
-              <div className="input-group">
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search"
-                  className="input-search"
-                />
-                <input
-                  type="hidden"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder='e.g. "London,United Kingdom"'
-                />
-                <select
-                  value={when}
-                  onChange={(e) => setWhen(e.target.value)}
-                  className="input-when"
-                >
-                  <option value="">When</option>
-                  <option value="">Anytime</option>
-                  <option value="date:today">Today</option>
-                  <option value="date:tomorrow">Tomorrow</option>
-                  <option value="date:week">This Week</option>
-                  <option value="date:weekend">This Weekend</option>
-                  <option value="date:next_week">Next Week</option>
-                  <option value="date:month">This Month</option>
-                  <option value="date:next_month">Next Month</option>
-                  <option value="event_type:Virtual-Event">Online</option>
-                </select>
-              </div>
+    <form
+      className="actions-wrapper"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setSearchTriggered(true);
+        searchEvents(true);
+      }}
+    >
+      <div className="input-group">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search artists, venues, genres…"
+          className="input-search"
+        />
+        <input
+          type="hidden"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+        <select
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+          className="input-when"
+        >
+          <option value="">When</option>
+          <option value="">Anytime</option>
+          <option value="date:today">Today</option>
+          <option value="date:tomorrow">Tomorrow</option>
+          <option value="date:week">This Week</option>
+          <option value="date:weekend">This Weekend</option>
+          <option value="date:next_week">Next Week</option>
+          <option value="date:month">This Month</option>
+          <option value="date:next_month">Next Month</option>
+          <option value="event_type:Virtual-Event">Online</option>
+        </select>
+      </div>
 
-              <div className="actions-buttons">
-                <button type="submit" className="btn primary">
-                  {loading ? 'Searching…' : 'Search'}
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => {
-                    setQ('');
-                    setLocation('');
-                    setWhen('');
-                    setEvents([]);
-                    setSelected(null);
-                    setFlights(null);
-                    setHotels([]);
-                    setPageStart(0);
-                    setArrivalOverride('');
-                    setOutboundDate('');
-                    setReturnDate('');
-                    setSearchTriggered(false);
-                    setShowTravel(false);
-                  }}
-                >
-                  Clear
-                </button>
-              </div>
-            </form>
+      <div className="actions-buttons">
+        <button type="submit" className="btn primary">
+          {loading ? 'Searching…' : 'Search'}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setQ('');
+            setLocation('');
+            setWhen('');
+            setEvents([]);
+            setSelected(null);
+            setFlights(null);
+            setHotels([]);
+            setPageStart(0);
+            setArrivalOverride('');
+            setOutboundDate('');
+            setReturnDate('');
+            setSearchTriggered(false);
+            setShowTravel(false);
+          }}
+        >
+          Clear
+        </button>
+      </div>
+    </form>
+
+    {/* SUGGESTIONS LIVE IN HEADER NOW */}
+    {showSuggestions && (
+      <section className="landing-suggest in-header">
+        <div className="suggest-wrap">
+          <div className="suggest-hero">
+            <div className="hero-eyebrow">Getting started</div>
+            <h2 className="hero-title">Search concerts & events</h2>
+            <p className="hero-sub">Pick a quick chip or just type above.</p>
           </div>
-        </header>
+
+          <div className="chip-row big mb-14">
+            {['Korn','Lady Gaga','Morgenshtern','Linkin Park'].map((name) => (
+              <button
+                key={name}
+                className="chip chip--pill chip--ghost chip--lg"
+                onClick={() => runQuickSearch(name, '')}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+
+          <div className="suggest-grid">
+            <div className="suggest-card">
+              <div className="suggest-head">By date</div>
+              <div className="chip-row">
+                {[
+                  { label: 'Today', value: 'date:today' },
+                  { label: 'This Weekend', value: 'date:weekend' },
+                  { label: 'Next Week', value: 'date:next_week' },
+                ].map(({label, value}) => (
+                  <button
+                    key={value}
+                    className="chip chip--pill chip--ghost"
+                    onClick={() => runQuickSearch(q || 'concert', value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="hint">Sets the “When” filter for you.</div>
+            </div>
+
+            <div className="suggest-card">
+              <div className="suggest-head">Cities</div>
+              <div className="chip-row">
+                {['London','Riga','Stockholm','Manchester'].map((c) => (
+                  <button
+                    key={c}
+                    className="chip chip--pill chip--ghost"
+                    onClick={() => runQuickSearch('concert', '', c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <div className="hint">Searches events around the city.</div>
+            </div>
+
+            <div className="suggest-card">
+              <div className="suggest-head">Ideas</div>
+              <div className="chip-row">
+                {['rock','pop','stand-up','festival'].map((k) => (
+                  <button
+                    key={k}
+                    className="chip chip--pill chip--ghost"
+                    onClick={() => runQuickSearch(k)}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+              <div className="hint">Quick genre kicks to get you going.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+  </div>
+</header>
 
         <main className="results-area">
-          {events?.length === 0 && !loading && <div>No events yet. Try a search.</div>}
+          {/* ---------- SUGGESTIONS / LANDING CONTENT ---------- */}
+          {/* {showSuggestions && (
+            <section className="landing-suggest">
+              <div className="suggest-wrap">
+                <div className="suggest-hero">
+                  <div className="hero-eyebrow">Getting started</div>
+                  <h2 className="hero-title">Search concerts & events</h2>
+                  <p className="hero-sub">Pick a quick chip or just type above.</p>
+                </div>
+
+                <div className="chip-row big mb-14">
+                  {popularArtists.map((name) => (
+                    <button
+                      key={name}
+                      className="chip chip--pill chip--ghost chip--lg"
+                      onClick={() => runQuickSearch(name, '')}
+                      aria-label={`Search for ${name}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="suggest-grid">
+                  <div className="suggest-card">
+                    <div className="suggest-head">By date</div>
+                    <div className="chip-row">
+                      {quickDates.map(({label, value}) => (
+                        <button
+                          key={value}
+                          className="chip chip--pill chip--ghost"
+                          onClick={() => runQuickSearch(q || 'concert', value)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="hint">Sets the “When” filter for you.</div>
+                  </div>
+
+                  <div className="suggest-card">
+                    <div className="suggest-head">Cities</div>
+                    <div className="chip-row">
+                      {quickCities.map((c) => (
+                        <button
+                          key={c}
+                          className="chip chip--pill chip--ghost"
+                          onClick={() => runQuickSearch('concert', '', c)}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="hint">Searches events around the city.</div>
+                  </div>
+
+                  <div className="suggest-card">
+                    <div className="suggest-head">Ideas</div>
+                    <div className="chip-row">
+                      {['rock', 'pop', 'stand-up', 'festival'].map((k) => (
+                        <button
+                          key={k}
+                          className="chip chip--pill chip--ghost"
+                          onClick={() => runQuickSearch(k)}
+                        >
+                          {k}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="hint">Quick genre kicks to get you going.</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )} */}
+
+          {/* ---------- RESULTS LIST ---------- */}
+          {!showSuggestions && events?.length === 0 && !loading && (
+            <div className="muted center">No events yet. Try a search.</div>
+          )}
 
           {events?.map((evt, idx) => (
             <div key={idx} className="event-card">

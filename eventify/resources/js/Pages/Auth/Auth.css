@@ -182,4 +182,177 @@
   .ui-btn, .auth-card button {
     color: #fff;
   }
+  .social-auth { margin-top: 12px; }
+.social-row { display: grid; gap: 10px; }
+.btn.social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  transition: background 0.2s ease, transform 0.05s ease;
+  text-decoration: none;
+}
+.btn.social:hover { background: rgba(255,255,255,0.08); }
+.btn.social:active { transform: translateY(1px); }
+.btn.social .icon { line-height: 1; }
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+  color: #8a8a8a;
+  font-size: 0.9rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+/* ==== Auth layout (glass on gradient) ===================================== */
+:root{
+    --card-bg: rgba(18,24,40,0.55);
+    --card-border: rgba(255,255,255,0.10);
+    --text: #e8ecff;
+    --muted: rgba(232,236,255,0.66);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,.35);
+  }
+  
+  .auth-shell{
+    min-height: calc(100vh - 64px);
+    display:grid;
+    place-items:center;
+    padding:42px 16px 72px;
+    background:
+      radial-gradient(1200px 800px at 50% -10%, rgba(65,105,225,.18), transparent 60%),
+      linear-gradient(180deg, #0f1832 0%, #184b91 100%);
+  }
+  
+  .auth-card{
+    width: min(640px, 92vw);
+    color: var(--text);
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)),
+                var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 22px 22px 20px;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(10px);
+  }
+  
+  .auth-head{ margin-bottom: 10px; }
+  .auth-title{
+    font-size: 1.6rem;
+    letter-spacing:.2px;
+    margin: 0 0 4px;
+  }
+  .auth-sub{ color: var(--muted); margin:0; }
+  
+  .auth-status{
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(60,180,255,0.08);
+    border: 1px solid rgba(60,180,255,0.18);
+    color: var(--text);
+  }
+  
+  .auth-form{ margin-top: 8px; }
+  .field{ display:block; }
+  .row{
+    display:flex; align-items:center; gap:14px;
+  }
+  .row .grow{ flex:1; }
+  .mt-1{ margin-top:.25rem; }
+  .mt-2{ margin-top:.5rem; }
+  .mt-4{ margin-top:1rem; }
+  .mt-6{ margin-top:1.5rem; }
+  
+  /* Inputs (Breeze components already styled; these polish surroundings) */
+  .remember{
+    display:flex; align-items:center; gap:8px;
+    color: var(--muted);
+  }
+  
+  .auth-foot{
+    margin-top: 14px;
+    display:flex; gap:8px; align-items:center; justify-content:center;
+    color: var(--muted);
+  }
+  .auth-link{
+    color:#a9b9ff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  
+  /* ==== Social providers: compact, input-like =============================== */
+  .social-auth.compact{
+    display:grid;
+    gap:10px;
+    margin: 6px 0 14px;
+  }
+  
+  .provider-btn{
+    --h: 44px; /* match input height here */
+    display:grid;
+    grid-template-columns: 22px 1fr;
+    align-items:center;
+    gap:10px;
+    height: var(--h);
+    padding:0 12px;
+    border-radius:12px;
+    text-decoration:none;
+    font-size:.95rem;
+    line-height:1;
+    color: var(--text);
+    border:1px solid rgba(255,255,255,.10);
+    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    transition: transform .06s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .provider-btn:hover{
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border-color: rgba(255,255,255,.16);
+  }
+  .provider-btn:active{ transform: translateY(1px); }
+  
+  .pv-icon{
+    display:grid; place-items:center;
+    width:22px; height:22px;
+    border-radius:6px;
+    background: rgba(255,255,255,.05);
+  }
+  .pv-icon svg{ width:16px; height:16px; fill: currentColor; }
+  
+  .provider-btn.google .pv-icon{ color:#7aa2ff; }  /* soft brand hints */
+  .provider-btn.github .pv-icon{ color:#b9b9b9; }
+  
+  .pv-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  
+  .pv-divider{
+    display:flex; align-items:center; gap:10px;
+    margin-top:2px;
+    color: var(--muted);
+    font-size:.85rem;
+  }
+  .pv-divider::before,
+  .pv-divider::after{
+    content:""; flex:1;
+    height:1px; border-radius:1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  }
+  
+  /* Make provider buttons full width inside the card */
+  .auth-card .provider-btn{ width:100%; }
+  
+  /* ====== Small screens ===================================================== */
+  @media (max-width: 420px){
+    .auth-card{ padding:18px 16px; border-radius:14px; }
+    .auth-title{ font-size:1.35rem; }
+    .provider-btn{ --h: 42px; border-radius:10px; }
+  }
   
