@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ----- page background: non-fixed gradient to avoid seams ----- */
+html, body { height: 100%; }
+body {
+  background: linear-gradient(180deg, #0b1e3f 0%, #0e2a6e 100%);
+  background-attachment: local; /* important: NOT fixed */
+}
+
+/* optional: if you use glassmorphism cards, stop border bleed */
+.card, .flight-card, .hotel-card {
+  background-clip: padding-box;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* if you used backdrop-filter on cards, keep the blur small */
+.card, .flight-card, .hotel-card {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* kill any global 1px separators you might have added earlier */
+.hr, .divider, .list-separator {
+  background: transparent;
+  border: 0;
+  height: 0;
+}

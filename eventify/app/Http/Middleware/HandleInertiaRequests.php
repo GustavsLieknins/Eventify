@@ -29,11 +29,21 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
+        return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user(),
+                'user' => fn () => $request->user()
+                    ? $request->user()->only(['id','name','email'])
+                    : null,
             ],
-        ];
+
+            // 👇 Flash messages survive the redirect and are available on the next page
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error'   => fn () => $request->session()->get('error'),
+                // optional generic keys if you prefer one payload
+                'message' => fn () => $request->session()->get('message'),
+                'tone'    => fn () => $request->session()->get('tone'),
+            ],
+        ]);
     }
 }

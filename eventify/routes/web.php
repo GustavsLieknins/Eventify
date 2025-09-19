@@ -4,95 +4,55 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-// routes/web.php
+
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TravelController;
+use App\Http\Controllers\BookmarkedTripController;
+use App\Http\Controllers\ShareLinkController;
 
-use App\Http\Controllers\TripController;
-// Route::middleware(['auth'])->group(function () {
-//     Route::get('/trips', [TripController::class, 'index']);       // get all trips
-//     Route::get('/trips/{id}', [TripController::class, 'show']);   // get one trip
-//     Route::post('/trips', [TripController::class, 'store']);      // save new trip
-// });
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return response()->json(['id' => $request->user()->id]);
+Route::get('/', function () {
+    return redirect()->route('dashboard');
 });
-
-///////////////
-
-
+Route::get('/dashboard', function () {
+    return Inertia::render('Dashboard');
+})->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
 
-    Route::get('/bookmarks', function () {
-        return Inertia::render('Bookmarks');
-    })->name('bookmarks');
+    // Bookmarks (Inertia pages + POST)
+    Route::get('/bookmarks', [BookmarkedTripController::class, 'index'])->name('bookmarks');
+    Route::post('/bookmarks', [BookmarkedTripController::class, 'store'])->name('bookmarks.store');
+    Route::delete('/bookmarks/{id}', [BookmarkedTripController::class, 'destroy'])->name('bookmarks.destroy');
 });
 
-
-//////////////
-
-
-
-Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
-
-// JSON endpoints consumed by the React app
+// JSON endpoints consumed by the React app (no auth required for search)
 Route::get('/api/events', [EventController::class, 'search']);
 Route::get('/api/travel/flights', [TravelController::class, 'flights']);
 Route::get('/api/travel/hotels', [TravelController::class, 'hotels']);
 
-Route::middleware(['auth'])->group(function () {
-    // Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
 
-    // // JSON endpoints consumed by the React app
-    // Route::get('/api/events', [EventController::class, 'search']);
-    // Route::get('/api/travel/flights', [TravelController::class, 'flights']);
-    // Route::get('/api/travel/hotels', [TravelController::class, 'hotels']);
-});
-
-// Route::middleware(['auth'])->group(function () {
-//     Route::get('/dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
-
-//     // JSON endpoints used by the React page:
-//     Route::get('/api/events', [EventController::class, 'search']);
-//     Route::get('/api/travel/flights', [TravelController::class, 'flights']);
-//     Route::get('/api/travel/hotels', [TravelController::class, 'hotels']);
-// });
-
-
-Route::get('/', function () {
-    return redirect('/dashboard');
-});
-
-// Route::middleware(['auth'])->group(function () {
-//     Route::get('/dashboard', function () {
-//         return Inertia::render('Dashboard');
-//     })->name('dashboard');
-// });
-
-require __DIR__.'/auth.php';
-
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
-
-// Route::get('/dashboard', function () {
-//     return Inertia::render('Dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
-
+// Breeze profile routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+
+
+// Public shared page (read-only)
+Route::get('/s/{slug}', [ShareLinkController::class, 'show'])->name('share.show');
+
+// Auth required to create a share link
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/share-links', [ShareLinkController::class, 'store'])->name('share.store');
+});
+
 
 require __DIR__.'/auth.php';

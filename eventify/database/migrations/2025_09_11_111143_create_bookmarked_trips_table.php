@@ -9,13 +9,11 @@ return new class extends Migration {
     {
         Schema::create('bookmarked_trips', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id'); // reference to users table
-            $table->string('title')->nullable(); // optional trip title
-            $table->json('flights'); // store flights JSON
-            $table->json('hotels');  // store hotels JSON
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('title')->nullable();
+            $table->json('flights')->nullable();
+            $table->json('hotels')->nullable();
             $table->timestamps();
-
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

@@ -1,11 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './Dashboard.css';
+import TopNav from '@/Shared/TopNav';
 
-import { Link } from '@inertiajs/react';
-import { Inertia } from '@inertiajs/inertia';
+import { Link, router, usePage } from '@inertiajs/react';
+import PrimaryButton from '@/Components/PrimaryButton';
+import { createPortal } from 'react-dom';
 
+/* ====================== Toasts ====================== */
+const _uid = () => Math.random().toString(36).slice(2, 9);
 
+function Toasts({ toasts, onDismiss }) {
+  const content = (
+    <div className="toast-wrap" aria-live="polite" aria-atomic="true">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast ${t.tone ? `toast--${t.tone}` : ''}`}>
+          <div className="toast__title">{t.title}</div>
+          {t.message && <div className="toast__msg">{t.message}</div>}
+          <button className="toast__close" onClick={() => onDismiss(t.id)}>✕</button>
+          <div className="toast__bar" style={{ animationDuration: `${t.ttl}ms` }} />
+        </div>
+      ))}
+    </div>
+  );
+
+  // Render to <body> so it stacks above sticky nav/backdrops regardless of z-index traps
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    return createPortal(content, document.body);
+  }
+  return content; // SSR safety
+}
+
+/* ------------------------------
+   Small helpers
+--------------------------------*/
 function getCityFromAddress(addressArr) {
   if (!Array.isArray(addressArr) || addressArr.length === 0) return '';
   const last = addressArr[addressArr.length - 1];
@@ -54,10 +82,6 @@ const CITY_TO_IATA = {
 const DEFAULT_GL = 'uk';
 const DEFAULT_HL = 'en';
 const DEFAULT_EVENT_LOCATION = 'United Kingdom';
-
-/* ------------------------------
-   Helpers for pretty rendering
---------------------------------*/
 
 // Safe join
 const join = (arr, sep = ' • ') => (arr.filter(Boolean).join(sep));
@@ -131,7 +155,7 @@ function normalizeFlightOption(opt) {
 
   const price = opt?.price ?? opt?.priceTotal ?? opt?.priceFrom ?? null;
   const travelClass = first?.travelClass || opt?.travelClass || '';
-  const type = opt?.type || (legs.length > 1 ? 'Multi‑leg' : 'Trip');
+  const type = opt?.type || (legs.length > 1 ? 'Multi-leg' : 'Trip');
   const emissions = opt?.carbonEmissions || {};
 
   return {
@@ -175,7 +199,6 @@ function mapsLinkFromHotel(h) {
 /* ------------------------------
    Pretty Lists (Flights/Hotels)
 --------------------------------*/
-
 function FlightList({ data, selectedFlight, setSelectedFlight  }) {
   if (data === null) {
     return <div className="muted">No flights loaded yet.</div>;
@@ -204,8 +227,13 @@ function FlightList({ data, selectedFlight, setSelectedFlight  }) {
       <div className="cards-stack">
         {options.map((f, i) => (
           <div className="card flight-card" key={i}>
-            <input type="radio" name="flight-select" className="radio-select"             checked={selectedFlight === i}
-            onChange={() => setSelectedFlight(i)} />
+            <input
+              type="radio"
+              name="flight-select"
+              className="radio-select"
+              checked={selectedFlight === i}
+              onChange={() => setSelectedFlight(i)}
+            />
             <div className="card-head">
               <div className="route">
                 <span className="iata">{f.fromId || '—'}</span>
@@ -282,8 +310,13 @@ function HotelList({ hotels, selectedHotel, setSelectedHotel  }) {
     <div className="cards-stack">
       {items.slice(0, 12).map((h, i) => (
         <div className="card hotel-card" key={i}>
-        <input type="radio" name="hotels-select" class="radio-select"             checked={selectedHotel === i}
-            onChange={() => setSelectedHotel(i)} />
+          <input
+            type="radio"
+            name="hotels-select"
+            className="radio-select"
+            checked={selectedHotel === i}
+            onChange={() => setSelectedHotel(i)}
+          />
           <div className="hotel-grid">
             <div className="thumb-wrap">
               {h.thumbnail
@@ -339,7 +372,6 @@ function HotelList({ hotels, selectedHotel, setSelectedHotel  }) {
 /* ------------------------------
    Main component
 --------------------------------*/
-
 export default function Dashboard() {
   const [q, setQ] = useState('');
   const [location, setLocation] = useState('');
@@ -350,62 +382,56 @@ export default function Dashboard() {
   const [flights, setFlights] = useState(null);
   const [hotels, setHotels] = useState([]);
 
-  const [userId, setUserId] = useState(null);
-
   const [selectedFlight, setSelectedFlight] = useState(null);
   const [selectedHotel, setSelectedHotel] = useState(null);
 
-useEffect(() => {
-  axios.get('/api/user')
-    .then(res => {
-      setUserId(res.data?.id || null);
-    })
-    .catch(() => {
-      setUserId(null);
-    });
-}, []);
-
+  const { auth } = usePage().props;
+  const userId = auth?.user?.id ?? null;
 
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [pageStart, setPageStart] = useState(0);
 
-  const [tripCfg, setTripCfg] = useState({
-    from: 'RIX',
-    stayNights: 1,
-  });
-
+  const [tripCfg, setTripCfg] = useState({ from: 'RIX', stayNights: 1 });
   const [arrivalOverride, setArrivalOverride] = useState('');
   const [outboundDate, setOutboundDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
 
-  // Modal state
   const [showTravel, setShowTravel] = useState(false);
   const modalRef = useRef(null);
 
-  // Lock body scroll + close on Esc + focus when modal opens
+  const [saving, setSaving] = useState(false);
+
+  // toasts
+  const [toasts, setToasts] = useState([]);
+  const pushToast = ({ title, message = '', tone = 'info', ttl = 3800 }) => {
+    const id = _uid();
+    setToasts(t => [...t, { id, title, message, tone, ttl }]);
+    window.setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), ttl + 250);
+  };
+  const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
+
+  // Modal lock + esc + body class for styling
   useEffect(() => {
     if (!showTravel) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
 
     const onKey = (e) => {
       if (e.key === 'Escape') setShowTravel(false);
     };
     window.addEventListener('keydown', onKey);
-
-    if (modalRef.current) {
-      modalRef.current.focus();
-    }
+    if (modalRef.current) modalRef.current.focus();
 
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.body.classList.remove('modal-open');
       window.removeEventListener('keydown', onKey);
     };
   }, [showTravel]);
 
   const searchEvents = async (reset = true) => {
     setLoading(true);
-
     if (reset) {
       setEvents([]);
       setPageStart(0);
@@ -414,7 +440,6 @@ useEffect(() => {
       setHotels([]);
       setShowTravel(false);
     }
-
     try {
       const { data } = await axios.get('/api/events', {
         params: {
@@ -426,12 +451,8 @@ useEffect(() => {
           start: reset ? 0 : pageStart,
         },
       });
-
       const items = normalizeEvents(data);
       setEvents((prev) => (reset ? items : [...prev, ...items]));
-    } catch (e) {
-      console.error('Events error:', e?.response?.status, e?.response?.data || e?.message);
-    //   alert(`Events search failed (${e?.response?.status ?? 'network'}) — check console for details`);
     } finally {
       setLoading(false);
     }
@@ -448,7 +469,6 @@ useEffect(() => {
     setFlights(null);
     setHotels([]);
 
-    // default trip dates: 14 days from today, stayNights long
     const today = new Date();
     const dOut = new Date(today);
     dOut.setDate(today.getDate() + 14);
@@ -469,8 +489,7 @@ useEffect(() => {
       const h = primary.data;
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
       setHotels(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error('Hotels error:', e?.response?.status, e?.response?.data || e?.message);
+    } catch {
       setHotels([]);
     }
 
@@ -488,8 +507,7 @@ useEffect(() => {
         },
       });
       setFlights(flightRes.data);
-    } catch (e) {
-      console.error('Flights error:', e?.response?.status, e?.response?.data || e?.message);
+    } catch {
       setFlights({ error: 'Failed to fetch flights' });
     }
   };
@@ -498,10 +516,8 @@ useEffect(() => {
     if (!selected) return;
     const city = selected?.city || '';
     const arrivalId = arrivalOverride.trim().toUpperCase() || CITY_TO_IATA[city] || '';
-    if (!arrivalId) {
-    //   alert('Please enter Arrival (IATA).');
-      return;
-    }
+    if (!arrivalId) return;
+
     try {
       const flightRes = await axios.get('/api/travel/flights', {
         params: {
@@ -513,8 +529,7 @@ useEffect(() => {
         },
       });
       setFlights(flightRes.data);
-    } catch (e) {
-      console.error(e);
+    } catch {
       setFlights({ error: 'Failed to fetch flights' });
     }
   };
@@ -534,230 +549,246 @@ useEffect(() => {
       const h = res.data;
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
       setHotels(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error(e);
+    } catch {
       setHotels([]);
     }
   };
 
-  return (
-    
-    <div className={`main-wrapper ${searchTriggered ? 'search-active' : ''}`}>
-
-        
-{/* <div style={{ padding: '10px', background: 'black', textAlign: 'right' }}>
-<a href="/bookmarks" className="bookmarks">Bookmark</a>
-</div> */}
-
-
-{/* <Link
-                                            href={route('bookmarks')}
-                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                        >
-                                            Log in
-                                        </Link> */}
-      <header className="search-header">
-        <div className="search-inner">
-          <h1 className="app-name-title">Eventify</h1>
-
-          <form
-            className="actions-wrapper"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSearchTriggered(true);
-              searchEvents(true);
-            }}
-          >
-            {/* Search group */}
-            <div className="input-group">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search"
-                className="input-search"
-              />
-              {/* Hidden location, preserved */}
-              <input
-                type="hidden"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder='e.g. "London,United Kingdom"'
-              />
-              <select
-                value={when}
-                onChange={(e) => setWhen(e.target.value)}
-                className="input-when"
-              >
-                <option value="">When</option>
-                <option value="">Anytime</option>
-                <option value="date:today">Today</option>
-                <option value="date:tomorrow">Tomorrow</option>
-                <option value="date:week">This Week</option>
-                <option value="date:weekend">This Weekend</option>
-                <option value="date:next_week">Next Week</option>
-                <option value="date:month">This Month</option>
-                <option value="date:next_month">Next Month</option>
-                <option value="event_type:Virtual-Event">Online</option>
-              </select>
-            </div>
-
-            {/* Buttons */}
-            <div className="actions-buttons">
-              <button type="submit" className="btn primary">
-                {loading ? 'Searching…' : 'Search'}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setQ('');
-                  setLocation('');
-                  setWhen('');
-                  setEvents([]);
-                  setSelected(null);
-                  setFlights(null);
-                  setHotels([]);
-                  setPageStart(0);
-                  setArrivalOverride('');
-                  setOutboundDate('');
-                  setReturnDate('');
-                  setSearchTriggered(false); // back to full header
-                  setShowTravel(false);
-                }}
-              >
-                Clear
-              </button>
-            </div>
-          </form>
-        </div>
-      </header>
-
-      <main className="results-area">
-        {events?.length === 0 && !loading && <div>No events yet. Try a search.</div>}
-
-        {events?.map((evt, idx) => (
-          <div key={idx} className="event-card">
-            <div className="event-title">{evt.title}</div>
-            <div className="event-meta">
-              {evt.when} {evt.venue && `• ${evt.venue}`} {evt.city && `• ${evt.city}`}
-            </div>
-            <div className="event-actions">
-              {evt.link && (
-                <a href={evt.link} target="_blank" rel="noreferrer noopener" className="btn small">
-                  Source
-                </a>
-              )}
-              <button onClick={() => selectEvent(evt)} className="btn small">
-                View travel
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {events.length > 0 && (
-          <div className="load-more">
-            <button disabled={loading} onClick={loadMore} className="btn">
-              {loading ? 'Loading…' : 'Load more'}
-            </button>
-          </div>
-        )}
-      </main>
-
-      {/* Modal (popup) for travel options */}
-      {showTravel && selected && (
-        <div className="modal-backdrop" onClick={() => setShowTravel(false)}>
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="travel-title"
-            onClick={(e) => e.stopPropagation()}
-            ref={modalRef}
-            tabIndex={-1}
-          >
-            <button
-              className="modal-close"
-              onClick={() => setShowTravel(false)}
-              aria-label="Close dialog"
-              title="Close"
-            >
-              ✕
-            </button>
-
-            <header className="modal-header">
-              <h2 id="travel-title" className="modal-title">
-                Travel options for: {selected.title || selected.name}
-              </h2>
-              <div className="modal-sub">
-                {selected.when} {selected.venue && <>• {selected.venue} </>}{' '}
-                {selected.city && <>• {selected.city}</>}
-              </div>
-            </header>
-
-            <div className="modal-body">
-              <form
-  className="travel-columns"
-  onSubmit={async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
+    if (!userId) {
+      pushToast({ title: 'Please sign in first', tone: 'warn' });
+      return;
+    }
 
-    const flightOptions = extractFlightOptions(flights).map(normalizeFlightOption);
-    const hotelOptions = (hotels || []).map(normalizeHotel);
+    const flightOptions = extractFlightOptions(flights).map(normalizeFlightOption).slice(0, 10);
+    const hotelOptions  = (Array.isArray(hotels) ? hotels : []).map(normalizeHotel);
+
+    const isValidIndex = (i, arr) => Number.isInteger(i) && i >= 0 && i < arr.length;
+
+    const selectedFlightData = isValidIndex(selectedFlight, flightOptions) ? flightOptions[selectedFlight] : null;
+    const selectedHotelData  = isValidIndex(selectedHotel,  hotelOptions)  ? hotelOptions[selectedHotel]  : null;
+
+    if (!selectedFlightData && !selectedHotelData) {
+      pushToast({ title: 'Select a flight or hotel first', tone: 'warn' });
+      return;
+    }
 
     const payload = {
-      flights: selectedFlight != null ? [flightOptions[selectedFlight]] : [],
-      hotels: selectedHotel != null ? [hotelOptions[selectedHotel]] : [],
-      title: "My Trip",
+      title: 'My Trip',
+      flights: selectedFlightData ? [selectedFlightData] : [],
+      hotels:  selectedHotelData  ? [selectedHotelData]  : [],
+      user_id: userId,
     };
 
+    setSaving(true);
+
     try {
-      const res = await axios.post('/api/trips', payload);
+      const ttl = 4800;             // how long to keep the toast visible
+      const notBefore = Date.now() + 800; // don't show for ~0.8s (covers the remount)
+      sessionStorage.setItem('toastRelay', JSON.stringify({
+        title: 'Trip saved!',
+        message: '',
+        tone: 'success',
+        ttl,
+        until: Date.now() + (ttl + 12000), // keep relay in storage long enough
+        notBefore,
+        _shown: false
+      }));
+    } catch {}
 
+    router.post('/bookmarks', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        // If your controller redirects already, this may not run.
+        // But if it returns 303-less, ensure we land on Bookmarks:
+        router.visit('/bookmarks', { replace: true });
+      },
+      onError: () => {
+        try { sessionStorage.removeItem('toastRelay'); } catch {}
+        pushToast({ title: 'Failed to save trip', tone: 'error' });
+      },
+      onFinish: () => setSaving(false),
+    });
+  };
 
-      console.log('Trip saved:', res.data.trip);
-      alert('✅ Trip saved successfully!');
-    } catch (err) {
-      if (err.response?.status === 401) {
-        const data = err.response.data;
-        window.location.href = data.redirect || '/login';
-      } else {
-        console.error('Trip save failed:', err.response?.data || err.message);
-        alert('❌ Failed to save trip. Check console.');
-      }
-    }
-  }}
->
+  return (
+    <>
+      <TopNav active="dashboard" />
+      <div className={`main-wrapper ${searchTriggered ? 'search-active' : ''}`}>
+        <Toasts toasts={toasts} onDismiss={(id) => setToasts(ts => ts.filter(t => t.id !== id))} />
 
+        <header className="search-header">
+          <div className="search-inner">
+            <h1 className="app-name-title">Eventify</h1>
 
+            <form
+              className="actions-wrapper"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSearchTriggered(true);
+                searchEvents(true);
+              }}
+            >
+              <div className="input-group">
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search"
+                  className="input-search"
+                />
+                <input
+                  type="hidden"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder='e.g. "London,United Kingdom"'
+                />
+                <select
+                  value={when}
+                  onChange={(e) => setWhen(e.target.value)}
+                  className="input-when"
+                >
+                  <option value="">When</option>
+                  <option value="">Anytime</option>
+                  <option value="date:today">Today</option>
+                  <option value="date:tomorrow">Tomorrow</option>
+                  <option value="date:week">This Week</option>
+                  <option value="date:weekend">This Weekend</option>
+                  <option value="date:next_week">Next Week</option>
+                  <option value="date:month">This Month</option>
+                  <option value="date:next_month">Next Month</option>
+                  <option value="event_type:Virtual-Event">Online</option>
+                </select>
+              </div>
 
-  <button className="button-submit" type="submit">Bookmark this trip</button>
+              <div className="actions-buttons">
+                <button type="submit" className="btn primary">
+                  {loading ? 'Searching…' : 'Search'}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setQ('');
+                    setLocation('');
+                    setWhen('');
+                    setEvents([]);
+                    setSelected(null);
+                    setFlights(null);
+                    setHotels([]);
+                    setPageStart(0);
+                    setArrivalOverride('');
+                    setOutboundDate('');
+                    setReturnDate('');
+                    setSearchTriggered(false);
+                    setShowTravel(false);
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </form>
+          </div>
+        </header>
 
-  <div className="travel-column">
-    <h3>Flights</h3>
-    <FlightList data={flights}   selectedFlight={selectedFlight} 
-  setSelectedFlight={setSelectedFlight}  />
-    <input type="hidden" name="user_id" value={userId ?? 'null'} />
-    <details className="raw-toggle">
-      <summary>Show raw</summary>
-      <pre className="pre-json">{JSON.stringify(flights, null, 2)}</pre>
-    </details>
-  </div>
+        <main className="results-area">
+          {events?.length === 0 && !loading && <div>No events yet. Try a search.</div>}
 
-  <div className="travel-column">
-    <h3>Hotels near venue</h3>
-    <HotelList hotels={hotels}   selectedHotel={selectedHotel} 
-  setSelectedHotel={setSelectedHotel}  />
-    <details className="raw-toggle">
-      <summary>Show raw</summary>
-      <pre className="pre-json">{JSON.stringify(hotels, null, 2)}</pre>
-    </details>
-  </div>
-</form>
+          {events?.map((evt, idx) => (
+            <div key={idx} className="event-card">
+              <div className="event-title">{evt.title}</div>
+              <div className="event-meta">
+                {evt.when} {evt.venue && `• ${evt.venue}`} {evt.city && `• ${evt.city}`}
+              </div>
+              <div className="event-actions">
+                {evt.link && (
+                  <a href={evt.link} target="_blank" rel="noreferrer noopener" className="btn small">
+                    Source
+                  </a>
+                )}
+                <button onClick={() => selectEvent(evt)} className="btn small">
+                  View travel
+                </button>
+              </div>
+            </div>
+          ))}
 
-              {/* </div> */}
+          {events.length > 0 && (
+            <div className="load-more">
+              <button disabled={loading} onClick={loadMore} className="btn">
+                {loading ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
+          )}
+        </main>
+
+        {showTravel && selected && (
+          <div className="modal-backdrop" onClick={() => setShowTravel(false)}>
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="travel-title"
+              onClick={(e) => e.stopPropagation()}
+              ref={modalRef}
+              tabIndex={-1}
+            >
+              <button
+                className="modal-close"
+                onClick={() => setShowTravel(false)}
+                aria-label="Close dialog"
+                title="Close"
+              >
+                ✕
+              </button>
+
+              <header className="modal-header">
+                <h2 id="travel-title" className="modal-title">
+                  Travel options for: {selected.title || selected.name}
+                </h2>
+                <div className="modal-sub">
+                  {selected.when} {selected.venue && <>• {selected.venue} </>}{' '}
+                  {selected.city && <>• {selected.city}</>}
+                </div>
+              </header>
+
+              <div className="modal-body">
+                <form onSubmit={handleSave}>
+                  <PrimaryButton disabled={saving}>
+                    {saving ? 'Saving…' : 'Bookmark this trip'}
+                  </PrimaryButton>
+
+                  <div className="travel-column">
+                    <h3>Flights</h3>
+                    <FlightList
+                      data={flights}
+                      selectedFlight={selectedFlight}
+                      setSelectedFlight={setSelectedFlight}
+                    />
+                    <details className="raw-toggle">
+                      <summary>Show raw</summary>
+                      <pre className="pre-json">{JSON.stringify(flights, null, 2)}</pre>
+                    </details>
+                  </div>
+
+                  <div className="travel-column">
+                    <h3>Hotels near venue</h3>
+                    <HotelList
+                      hotels={hotels}
+                      selectedHotel={selectedHotel}
+                      setSelectedHotel={setSelectedHotel}
+                    />
+                    <details className="raw-toggle">
+                      <summary>Show raw</summary>
+                      <pre className="pre-json">{JSON.stringify(hotels, null, 2)}</pre>
+                    </details>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

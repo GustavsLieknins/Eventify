@@ -7,7 +7,7 @@ use App\Models\BookmarkedTrip;
 
 class TripController extends Controller
 {
-    // Save a new trip
+    // Save a new trip (JSON API variant)
     public function store(Request $request)
     {
         if (!auth()->check()) {
@@ -16,29 +16,25 @@ class TripController extends Controller
                 'redirect' => route('login'),
             ], 401);
         }
-    
+
         $data = $request->validate([
             'title'   => 'nullable|string|max:255',
-            'flights' => 'required|array',
-            'hotels'  => 'required|array',
+            'flights' => 'nullable|array',
+            'hotels'  => 'nullable|array',
         ]);
-    
+
         $trip = BookmarkedTrip::create([
             'user_id' => auth()->id(),
-            'title'   => $data['title'],
-            'flights' => json_encode($data['flights']),
-            'hotels'  => json_encode($data['hotels']),
+            'title'   => $data['title'] ?? 'My Trip',
+            'flights' => $data['flights'] ?? [],
+            'hotels'  => $data['hotels'] ?? [],
         ]);
-    
+
         return response()->json([
             'message' => 'Trip saved successfully',
             'trip'    => $trip,
         ]);
     }
-    
-    
-    
-    
 
     // Get all trips for the logged-in user
     public function index()
