@@ -20,7 +20,7 @@ class HasDataClient
     {
         return Http::withHeaders([
             'Content-Type' => 'application/json',
-            'x-api-key'    => $this->apiKey, // HasData requires this header
+            'x-api-key'    => $this->apiKey,
         ])->baseUrl($this->baseUrl);
     }
 
