@@ -80,7 +80,7 @@ class ShareLinkController extends Controller
         // Eager-load relationships/shape the payload the same way Bookmarks expects
         $trip = $link->trip;
 
-        return Inertia::render('SharedTrip', [
+        return Inertia::render('Bookmarks/SharedTrip', [
             'slug'   => $link->slug,
             'title'  => $trip->title,
             'trip'   => [
