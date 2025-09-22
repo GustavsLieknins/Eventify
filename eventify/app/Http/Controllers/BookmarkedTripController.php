@@ -18,7 +18,7 @@ class BookmarkedTripController extends Controller
 
         info('Trips found: '.count($trips));
 
-        return Inertia::render('Bookmarks', [
+        return Inertia::render('Bookmarks/Bookmarks', [
             'trips' => $trips->map(function ($trip) {
                 return [
                     'id'     => $trip->id,

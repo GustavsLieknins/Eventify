@@ -20,7 +20,7 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    return Inertia::render('Dashboard/Dashboard');
 })->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
