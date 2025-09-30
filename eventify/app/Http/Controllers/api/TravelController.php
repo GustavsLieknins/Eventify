@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/Api/TravelController.php
+
 
 namespace App\Http\Controllers\Api;
 
@@ -12,7 +12,7 @@ class TravelController extends Controller
 {
     public function flights(Request $request, HasDataClient $hasData)
     {
-        // Inputs
+
         $from  = strtoupper((string)$request->input('from', env('DEFAULT_DEPARTURE_IATA', 'RIX')));
         $stay  = (int) $request->input('stayNights', 1);
 
@@ -20,7 +20,7 @@ class TravelController extends Controller
         $returnDate   = $request->input('returnDate');
         $eventDate    = $request->input('date');
 
-        // Resolve destination (see helper below)
+   
         $arrivalId = $this->resolveArrivalId($request);
 
         if (!$arrivalId) {
@@ -54,23 +54,22 @@ class TravelController extends Controller
             $returnDate   = Carbon::parse($outboundDate)->addDays(max(1, $stay))->format('Y-m-d');
         }
 
-        // Bias: use destination countryCode if provided; otherwise fallback to env
-        $destCountryCode = strtoupper((string)$request->input('countryCode', '')); // e.g., GB or CA
+
+        $destCountryCode = strtoupper((string)$request->input('countryCode', ''));
         $hl = env('GOOGLE_HL', 'en');
         $gl = $this->glForCountry($destCountryCode) ?? $this->normalizeGl(env('GOOGLE_GL', 'gb'));
 
         $params = [
-            'departureId'  => $from,             // IATA airport or city code
-            'arrivalId'    => $arrivalId,        // IATA airport or city code
+            'departureId'  => $from,           
+            'arrivalId'    => $arrivalId,        
             'outboundDate' => $outboundDate,
-            'returnDate'   => $returnDate,       // round trip by default
+            'returnDate'   => $returnDate,       
             'currency'     => env('DEFAULT_CURRENCY', 'EUR'),
             'hl'           => $hl,
             'gl'           => $gl,
         ];
 
-        // Uncomment for debugging
-        // logger()->info('Flights params', $params);
+
 
         $data = $hasData->flights($params);
         return response()->json($data);
@@ -78,7 +77,6 @@ class TravelController extends Controller
 
     public function hotels(Request $request, HasDataClient $hasData)
     {
-        // (keep your existing hotels implementation)
         $q     = trim((string) $request->input('q', ''));
         $city  = trim((string) $request->input('city', ''));
         $venue = trim((string) $request->input('venue', ''));
@@ -148,17 +146,10 @@ class TravelController extends Controller
         return response()->json([]);
     }
 
-    /**
-     * Resolve destination IATA from request.
-     * Supports:
-     *  - arrivalId (IATA airport or city code)
-     *  - arrivalAirportCode (exact airport, e.g., YXU)
-     *  - arrivalCityCode (city/metropolitan code, e.g., LON)
-     *  - city + countryCode (disambiguation map)
-     */
+
     private function resolveArrivalId(Request $request): ?string
     {
-        // 1) Direct overrides
+   
         foreach (['arrivalId', 'arrivalAirportCode', 'arrivalCityCode'] as $key) {
             $val = strtoupper(trim((string)$request->input($key, '')));
             if ($val !== '') {
@@ -166,23 +157,20 @@ class TravelController extends Controller
             }
         }
 
-        // 2) Disambiguation by city + country/countryCode
         $city        = strtolower(trim((string)$request->input('city', '')));
         $country     = strtolower(trim((string)$request->input('country', '')));
         $countryCode = strtoupper(trim((string)$request->input('countryCode', '')));
 
         if ($city === '') {
-            // Some UIs pass "arrivalId" in 'to' or 'arrival' — optional compatibility
             $alt = strtoupper(trim((string)$request->input('to', '')));
             return $alt !== '' ? $alt : null;
         }
 
-        // Minimal mapping for ambiguous city names
         $map = [
             'london' => [
-                'GB' => 'LON', // London (UK) metro code
+                'GB' => 'LON',
                 'UK' => 'LON',
-                'CA' => 'YXU', // London, Ontario, Canada
+                'CA' => 'YXU', 
             ],
             'paris' => [ 'FR' => 'PAR' ],
             'new york' => [ 'US' => 'NYC' ],
@@ -197,7 +185,7 @@ class TravelController extends Controller
             return $map[$city][$countryCode];
         }
 
-        // Name-based fallback
+
         if ($city === 'london') {
             if (in_array($country, ['united kingdom', 'england', 'great britain', 'uk'], true)) {
                 return 'LON';
@@ -207,7 +195,6 @@ class TravelController extends Controller
             }
         }
 
-        // If there’s only one mapping for that city in the table, use it
         if (isset($map[$city]) && count($map[$city]) === 1) {
             return current($map[$city]);
         }
@@ -215,7 +202,6 @@ class TravelController extends Controller
         return null;
     }
 
-    /** Prefer 'gb' for UK; keep anything else lowercase as-is. */
     private function normalizeGl(string $gl): string
     {
         $gl = strtolower($gl);
@@ -225,7 +211,6 @@ class TravelController extends Controller
         return $gl;
     }
 
-    /** Map ISO country code to a reasonable 'gl' value. */
     private function glForCountry(string $countryCode): ?string
     {
         $cc = strtoupper($countryCode);

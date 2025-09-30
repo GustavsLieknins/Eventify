@@ -36,11 +36,9 @@ class HandleInertiaRequests extends Middleware
                     : null,
             ],
 
-            // 👇 Flash messages survive the redirect and are available on the next page
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
-                // optional generic keys if you prefer one payload
                 'message' => fn () => $request->session()->get('message'),
                 'tone'    => fn () => $request->session()->get('tone'),
             ],

@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\ShareLink;
-use App\Models\BookmarkedTrip; // adjust if your model lives elsewhere / named differently
+use App\Models\BookmarkedTrip; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ShareLinkController extends Controller
 {
-    // POST /share-links  (create or fetch existing)
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -18,7 +17,6 @@ class ShareLinkController extends Controller
             'expires_in'  => ['nullable', 'integer', 'min:0'], // minutes (optional)
         ]);
 
-        /** @var \App\Models\User $user */
         $user = $request->user();
 
         $trip = BookmarkedTrip::query()
@@ -26,7 +24,7 @@ class ShareLinkController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        // Reuse existing active link if you want (optional):
+            
         $existing = ShareLink::query()
             ->where('trip_id', $trip->id)
             ->where('user_id', $user->id)
@@ -43,7 +41,6 @@ class ShareLinkController extends Controller
             ]);
         }
 
-        // Make a short, collision-checked slug
         do {
             $slug = Str::lower(Str::random(10));
         } while (ShareLink::where('slug', $slug)->exists());
@@ -66,7 +63,6 @@ class ShareLinkController extends Controller
         ]);
     }
 
-    // GET /s/{slug}  (public)
     public function show(Request $request, string $slug)
     {
         $link = ShareLink::with(['trip'])
@@ -77,7 +73,6 @@ class ShareLinkController extends Controller
             abort(410, 'This link has expired.');
         }
 
-        // Eager-load relationships/shape the payload the same way Bookmarks expects
         $trip = $link->trip;
 
         return Inertia::render('Bookmarks/SharedTrip', [

@@ -1,5 +1,4 @@
 <?php
-// app/Services/HasDataClient.php
 
 namespace App\Services;
 
@@ -9,11 +8,14 @@ class HasDataClient
 {
     private string $baseUrl;
     private string $apiKey;
+    // /** @var array<string,string> */
+    private array $endpoints;
 
     public function __construct()
     {
-        $this->baseUrl = config('services.hasdata.base_url', 'https://api.hasdata.com');
-        $this->apiKey  = (string) config('services.hasdata.api_key', env('HASDATA_API_KEY', ''));
+        $this->baseUrl   = (string) config('services.hasdata.base_url');
+        $this->apiKey    = (string) config('services.hasdata.api_key');
+        $this->endpoints = (array) config('services.hasdata.endpoints');
     }
 
     private function client()
@@ -27,7 +29,7 @@ class HasDataClient
     public function events(array $params)
     {
         return $this->client()
-            ->get('/scrape/google/events', $params)
+            ->get($this->endpoints['events'], $params)
             ->throw()
             ->json();
     }
@@ -35,16 +37,15 @@ class HasDataClient
     public function flights(array $params)
     {
         return $this->client()
-            ->get('/scrape/google/flights', $params)
+            ->get($this->endpoints['flights'], $params)
             ->throw()
             ->json();
     }
 
     public function mapsSearch(array $params)
     {
-        // Correct path per HasData docs for Google Maps Search
         return $this->client()
-            ->get('/scrape/google-maps/search', $params)
+            ->get($this->endpoints['maps_search'], $params)
             ->throw()
             ->json();
     }

@@ -21,7 +21,6 @@ class ShareLink extends Model
 
     public function trip(): BelongsTo
     {
-        // replace BookmarkedTrip with your trip model class
         return $this->belongsTo(\App\Models\BookmarkedTrip::class, 'trip_id');
     }
 

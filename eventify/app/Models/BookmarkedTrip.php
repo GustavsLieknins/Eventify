@@ -18,7 +18,6 @@ class BookmarkedTrip extends Model
         'hotels'  => 'array',
     ];
 
-    // If you have a users table with id PK:
     public function user()
     {
         return $this->belongsTo(User::class);

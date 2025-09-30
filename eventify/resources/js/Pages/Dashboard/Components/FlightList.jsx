@@ -28,7 +28,7 @@ export default function FlightList({ data, selectedFlight, setSelectedFlight }) 
   return (
     <div className="cards-stack">
       {options.map((f, i) => (
-        <div className="card flight-card" key={i}>
+        <label className="card flight-card" key={i}>
           <input
             type="radio"
             name="flight-select"
@@ -48,7 +48,7 @@ export default function FlightList({ data, selectedFlight, setSelectedFlight }) 
           </div>
 
           <div className="meta-row">
-            <span className="badge">{f.type}</span>
+            {f.type && <span className="badge">{f.type}</span>}
             {f.travelClass && <span className="badge">{f.travelClass}</span>}
             {f.totalDuration && <span className="badge">{fmtDuration(f.totalDuration)}</span>}
             {f.airlines?.length > 0 && <span className="badge">{f.airlines.join(' + ')}</span>}
@@ -92,7 +92,7 @@ export default function FlightList({ data, selectedFlight, setSelectedFlight }) 
               </a>
             </div>
           )}
-        </div>
+        </label>
       ))}
     </div>
   );

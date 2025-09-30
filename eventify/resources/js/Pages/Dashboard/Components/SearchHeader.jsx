@@ -1,37 +1,40 @@
 import React from 'react';
 
-export default function SearchHeader({
-  q, setQ,
-  location, setLocation,
-  when, setWhen,
-  loading,
-  showSuggestions,
-  onSubmitSearch,
-  onClear,
-  runQuickSearch,
-}) {
+export default function SearchHeader(props) {
+  const {
+    q, setQ,
+    location, setLocation,
+    when, setWhen,
+    loading,
+    showSuggestions,
+    onSubmitSearch,
+    onClear,
+    runQuickSearch,
+  } = props;
+
   return (
     <header className={`search-header ${showSuggestions ? 'is-landing' : ''}`}>
       <div className="search-inner">
         <h1 className="app-name-title">Eventify</h1>
 
-        <form className="actions-wrapper" onSubmit={onSubmitSearch}>
+        <form
+          className="actions-wrapper"
+          onSubmit={(e) => onSubmitSearch?.(e, q)}
+        >
           <div className="input-group">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search artists, venues, genres…"
               className="input-search"
+              aria-label="Search query"
             />
-            <input
-              type="hidden"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
+            <input type="hidden" value={location} onChange={(e) => setLocation(e.target.value)} />
             <select
               value={when}
               onChange={(e) => setWhen(e.target.value)}
               className="input-when"
+              aria-label="When"
             >
               <option value="">When</option>
               <option value="">Anytime</option>
@@ -47,10 +50,15 @@ export default function SearchHeader({
           </div>
 
           <div className="actions-buttons">
-            <button type="submit" className="btn primary">
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={loading}
+              aria-busy={loading ? 'true' : 'false'}
+            >
               {loading ? 'Searching…' : 'Search'}
             </button>
-            <button type="button" className="btn" onClick={onClear}>
+            <button type="button" className="btn" onClick={onClear} disabled={loading}>
               Clear
             </button>
           </div>
@@ -70,7 +78,8 @@ export default function SearchHeader({
                   <button
                     key={name}
                     className="chip chip--pill chip--ghost chip--lg"
-                    onClick={() => runQuickSearch(name, '')}
+                    onClick={() => runQuickSearch?.(name, '')}
+                    type="button"
                   >
                     {name}
                   </button>
@@ -89,7 +98,8 @@ export default function SearchHeader({
                       <button
                         key={value}
                         className="chip chip--pill chip--ghost"
-                        onClick={() => runQuickSearch(q || 'concert', value)}
+                        onClick={() => runQuickSearch?.(q || 'concert', value)}
+                        type="button"
                       >
                         {label}
                       </button>
@@ -105,7 +115,8 @@ export default function SearchHeader({
                       <button
                         key={c}
                         className="chip chip--pill chip--ghost"
-                        onClick={() => runQuickSearch('concert', '', c)}
+                        onClick={() => runQuickSearch?.('concert', '', c)}
+                        type="button"
                       >
                         {c}
                       </button>
@@ -121,7 +132,8 @@ export default function SearchHeader({
                       <button
                         key={k}
                         className="chip chip--pill chip--ghost"
-                        onClick={() => runQuickSearch(k)}
+                        onClick={() => runQuickSearch?.(k)}
+                        type="button"
                       >
                         {k}
                       </button>

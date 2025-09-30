@@ -26,7 +26,6 @@ export default function Bookmarks({ trips: initialTrips, user }) {
   const [confirm, setConfirm] = useState({ open: false, trip: null });
   const modalRef = useRef(null);
 
-  /* ---------- tiny toasts ---------- */
   const [toasts, setToasts] = useState([]);
   const toast = useCallback((msg, tone = 'ok', ttl = 4200) => {
     const id = Math.random().toString(36).slice(2);
@@ -34,7 +33,6 @@ export default function Bookmarks({ trips: initialTrips, user }) {
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), ttl);
   }, []);
 
-  // relay (from Dashboard bookmark)
   useEffect(() => {
     let rafId; let tries = 0;
     const tick = () => {
@@ -59,7 +57,6 @@ export default function Bookmarks({ trips: initialTrips, user }) {
     return () => cancelAnimationFrame(rafId);
   }, [toast]);
 
-  /* ---------- helpers ---------- */
   const mapsLinkFromHotel = useCallback((h) => {
     if (h?.gps?.latitude && h?.gps?.longitude) {
       return `https://www.google.com/maps/search/?api=1&query=${h.gps.latitude},${h.gps.longitude}`;
@@ -129,7 +126,6 @@ export default function Bookmarks({ trips: initialTrips, user }) {
     return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}`;
   }, []);
 
-  /* ---------- actions ---------- */
   const onOpenTrip = useCallback((trip) => setSelectedTrip(trip), []);
   const onCloseTrip = useCallback(() => setSelectedTrip(null), []);
 
@@ -185,7 +181,6 @@ export default function Bookmarks({ trips: initialTrips, user }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedTrip]);
 
-  /* ---------- render ---------- */
   const hasTrips = trips && trips.length > 0;
   const requestDelete = (trip) => setConfirm({ open: true, trip });
   const cancelDelete = () => setConfirm({ open: false, trip: null });
@@ -199,7 +194,6 @@ export default function Bookmarks({ trips: initialTrips, user }) {
     <>
       <TopNav active="bookmarks" />
       <div className="page">
-        {/* Toasts */}
         <div className="toasts">
           {toasts.map(t => (
             <div key={t.id} className={`toast toast--${t.tone}`}>{t.msg}</div>

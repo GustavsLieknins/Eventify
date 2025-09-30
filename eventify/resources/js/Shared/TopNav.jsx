@@ -14,13 +14,11 @@ export default function TopNav({ active = '' }) {
   return (
     <nav className="ef-nav" role="navigation" aria-label="Main">
       <div className="ef-nav__inner">
-        {/* Brand */}
         <Link href="/dashboard" className="ef-nav__brand" aria-label="Eventify home">
           <span className="ef-nav__logo" aria-hidden="true">✦</span>
           <span className="ef-nav__name">Eventify</span>
         </Link>
 
-        {/* Links */}
         <div className="ef-nav__links">
           <Link
             href="/dashboard"
@@ -36,7 +34,6 @@ export default function TopNav({ active = '' }) {
           </Link>
         </div>
 
-        {/* Auth side */}
         <div className="ef-nav__auth">
           {user ? (
             <>

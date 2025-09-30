@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import { Head } from '@inertiajs/react';
 import './Bookmarks.css';
 
-/** Minimal badge from your existing file */
 const Badge = ({children, tone='glass'}) => (
   <span className={`ui-badge ui-badge--${tone}`}>{children}</span>
 );

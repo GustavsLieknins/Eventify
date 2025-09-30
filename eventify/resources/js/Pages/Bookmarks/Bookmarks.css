@@ -1,4 +1,4 @@
-/* ================= Global + Background (no seams) ================= */
+
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; padding: 0; }
 body {
@@ -14,7 +14,7 @@ body::before{
   pointer-events: none;
 }
 
-/* ================= Tokens ================= */
+
 :root{
   --muted: rgba(235,243,255,.9);
   --glass: rgba(255,255,255,.065);
@@ -34,7 +34,6 @@ body::before{
   --fast: 220ms; --med: 520ms;
 }
 
-/* ================= Utilities ================= */
 .muted { color: var(--muted); }
 .small { font-size: .9rem; }
 .mt-4 { margin-top: 4px; } .mt-6 { margin-top: 6px; } .mt-8 { margin-top: 8px; }
@@ -46,12 +45,10 @@ body::before{
 .link { color: #fff; text-decoration: none; }
 .link:hover { text-decoration: underline; }
 
-/* ================= Page ================= */
 .page{ min-height: 100vh; padding: 18px 16px 32px; max-width: 1120px; margin-inline: auto; }
 .page__head{ text-align: center; margin: 6px 0 16px; }
 .page__title{ font-size: clamp(28px, 4vw, 40px); margin: 0; }
 
-/* ================= Primitives ================= */
 .ui-card{
   background: var(--glass);
   border: 1px solid var(--line);
@@ -96,14 +93,12 @@ body::before{
 .ui-btn--danger:hover{ background: var(--danger-600); }
 .ui-btn:disabled{ opacity: .6; cursor: not-allowed; }
 
-/* ================= Trip list ================= */
 .trip-list{ display: grid; gap: 12px; margin-top: 10px; }
 .trip{ display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; cursor: pointer; }
 .trip__title{ margin: 0 0 4px 0; font-size: 1.15rem; }
 .trip__where{ color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trip__actions{ display: inline-flex; gap: 8px; }
 
-/* ================= Modal (contained & scrollable) ================= */
 .modal-wrap{
   position: fixed; inset: 0; display: grid; place-items: center; z-index: 999;
   background: rgba(9, 11, 24, 0.62);
@@ -117,7 +112,7 @@ body::before{
   position: relative;
   width: min(1200px, 98vw);
   max-height: 94svh;
-  overflow: hidden;                 /* keep edges clean */
+  overflow: hidden;                
   background: var(--glass-strong);
   border: 1px solid rgba(255,255,255,.10);
   border-radius: 16px;
@@ -127,14 +122,12 @@ body::before{
   animation: modalIn var(--med) var(--ease) both;
   background-clip: padding-box;
 
-  /* make inner region scrollable */
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 @keyframes modalIn{ from{ opacity: 0; transform: translateY(16px) scale(.975) } to{ opacity: 1; transform: none } }
 
-/* Close button INSIDE the corner */
 .modal__close{
   position: absolute; top: 10px; right: 10px;
   width: 36px; height: 36px;
@@ -151,7 +144,6 @@ body::before{
 }
 .modal__close:hover{ transform: translateY(-1px); background: rgba(60,64,84,.66); }
 
-/* Header (fixed at top of modal) */
 .modal__header{
   padding: 6px 4px 12px;
   margin: 0 4px 12px;
@@ -161,20 +153,18 @@ body::before{
 .modal__title{ margin: 2px 0 4px; font-size: clamp(20px, 3.4vw, 24px); }
 .modal__sub{ color: var(--muted); font-weight: 500; }
 
-/* Scrollable pane (map + content) */
 .modal__scroll{
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding-right: 6px; /* space for custom scrollbar overlay */
+  padding-right: 6px; 
 }
 
-/* ================= Map (integrated look, contained) ================= */
 .map-card{
   position: relative;
   border-radius: 14px;
   padding: 10px;
-  margin: 0 0 14px; /* no horizontal margin so it never peeks out */
+  margin: 0 0 14px; 
   background:
     linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.06)) padding-box,
     linear-gradient(135deg, rgba(18,132,235,.6), rgba(255,255,255,.12)) border-box;
@@ -184,7 +174,7 @@ body::before{
 .map-aspect{
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 7;   /* taller map in the bigger modal */
+  aspect-ratio: 16 / 7;
   min-height: 380px;
   border-radius: 10px; overflow: hidden;
   background: radial-gradient(120% 80% at 50% 0%, rgba(18,132,235,.12), rgba(0,0,0,.1));
@@ -204,15 +194,13 @@ body::before{
 }
 .map-btn{ pointer-events: auto; }
 
-/* ================= Two-column content ================= */
 .modal__grid{
   display: grid;
-  grid-template-columns: 1.25fr 1fr; /* wider flights column */
+  grid-template-columns: 1.25fr 1fr; 
   gap: 16px;
   align-items: start;
 }
 
-/* ================= Flights ================= */
 .route{ display: inline-flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: .2px; }
 .iata{ background: rgba(255,255,255,.12); padding: 6px 10px; border-radius: 999px; font-size: .95rem; }
 .arrow{ opacity: .85; }
@@ -222,7 +210,6 @@ body::before{
 .leg__meta{ color: var(--muted); margin-top: 2px; }
 .chips{ display: flex; flex-wrap: wrap; gap: 6px; }
 
-/* ================= Hotels ================= */
 .hotel__grid{ display: grid; grid-template-columns: 112px 1fr; gap: 12px; }
 .hotel__thumb img, .thumb--placeholder{
   width: 112px; height: 112px; border-radius: 12px; object-fit: cover;
@@ -230,7 +217,6 @@ body::before{
 }
 .hotel__title{ margin: 0; }
 
-/* ================= Responsive ================= */
 @media (max-width: 820px){
   .modal__grid{ grid-template-columns: 1fr; }
   .map-aspect{ aspect-ratio: 16 / 10; min-height: 260px; }
@@ -239,7 +225,6 @@ body::before{
   * { animation: none !important; transition: none !important; }
 }
 
-/* Optional: nicer thin scrollbar inside the scroll area (Chromium/WebKit) */
 .modal__scroll::-webkit-scrollbar{ width: 10px; }
 .modal__scroll::-webkit-scrollbar-thumb{
   background: rgba(255,255,255,.18);
@@ -248,7 +233,7 @@ body::before{
   border-radius: 999px;
 }
 .modal__scroll:hover::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.28); }
-/* Toasts */
+
 .toast-wrap{
     position: fixed;
     top: 18px;
@@ -290,15 +275,15 @@ body::before{
   .toast--warn   { border-color: rgba(255,210,100,.45); }
   .toast--error  { border-color: rgba(255,90,90,.5);   box-shadow: 0 18px 36px rgba(255,60,60,.25); }
   
-  /* Toast layer */
+
 .toasts, .toast-wrap {
     position: fixed;
     top: 14px;
     right: 14px;
-    z-index: 9999;        /* above modals */
+    z-index: 9999;       
     display: grid;
     gap: 8px;
-    pointer-events: none; /* clicks pass through except close button */
+    pointer-events: none;
   }
   
   .toast {
@@ -314,12 +299,12 @@ body::before{
   
   .toast--ok, .toast--success { border-color: rgba(60,200,120,.6); }
   .toast--error { border-color: rgba(255,80,80,.6); }
-  /* Toast layer */
+
 .toasts, .toast-wrap {
     position: fixed;
     top: 14px;
     right: 14px;
-    z-index: 9999;       /* above everything */
+    z-index: 9999;     
     display: grid;
     gap: 8px;
     pointer-events: none;
@@ -369,11 +354,10 @@ body::before{
   .suggest-meta { color:#cfe3ff; opacity:.8; margin-top:6px; font-size:12px; }
   
 
-  /* ───── Confirm popup ───── */
 :root{
-    /* make sure it sits above your navbar & normal modals */
-    --ef-pop-z: 10050;      /* overlays */
-    --ef-toast-z: 10100;    /* toasts */
+    --ef-pop-z: 10050;    
+    --ef-toast-z: 10100;  
+    
   }
   
   .confirm-wrap{
@@ -441,18 +425,15 @@ body::before{
     padding: 6px 6px 2px;
   }
   
-  /* small screens: stack actions neatly */
   @media (max-width: 420px){
     .confirm__actions{ flex-direction: column-reverse; }
     .confirm__actions .ui-btn{ width: 100%; justify-content: center; }
   }
   
-  /* motion prefs */
   @media (prefers-reduced-motion: reduce){
     .confirm-wrap, .confirm{ animation: none !important; }
   }
   
-  /* keyframes */
   @keyframes confirmFadeIn { from { opacity: 0 } to { opacity: 1 } }
   @keyframes confirmIn { from { opacity: 0; transform: translateY(14px) scale(.975) } to { opacity: 1; transform: none } }
   

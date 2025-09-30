@@ -38,8 +38,15 @@ return [
     'hasdata' => [
         'base_url' => env('HASDATA_BASE_URL', 'https://api.hasdata.com'),
         'api_key'  => env('HASDATA_API_KEY'),
+
+        'endpoints' => [
+            'events'      => env('HASDATA_EVENTS_PATH'),
+            'flights'     => env('HASDATA_FLIGHTS_PATH'),
+            'maps_search' => env('HASDATA_MAPS_SEARCH_PATH'),
+        ],
     ],
     
+
     'github' => [
         'client_id'     => env('GITHUB_CLIENT_ID'),
         'client_secret' => env('GITHUB_CLIENT_SECRET'),

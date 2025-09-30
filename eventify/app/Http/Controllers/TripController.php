@@ -7,7 +7,6 @@ use App\Models\BookmarkedTrip;
 
 class TripController extends Controller
 {
-    // Save a new trip (JSON API variant)
     public function store(Request $request)
     {
         if (!auth()->check()) {
@@ -35,15 +34,12 @@ class TripController extends Controller
             'trip'    => $trip,
         ]);
     }
-
-    // Get all trips for the logged-in user
     public function index()
     {
         $trips = BookmarkedTrip::where('user_id', auth()->id())->latest()->get();
         return response()->json($trips);
     }
 
-    // Get single trip
     public function show($id)
     {
         $trip = BookmarkedTrip::where('user_id', auth()->id())->findOrFail($id);

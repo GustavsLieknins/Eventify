@@ -9,6 +9,7 @@ export default function TravelModal({
   hotels,
   selectedFlight, setSelectedFlight,
   selectedHotel, setSelectedHotel,
+  tripTitle, setTripTitle,
   saving,
   handleSave,
   onClose,
@@ -17,9 +18,9 @@ export default function TravelModal({
   if (!selected) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="tm-backdrop" onClick={onClose}>
       <div
-        className="modal"
+        className="tm-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby="travel-title"
@@ -27,51 +28,77 @@ export default function TravelModal({
         ref={modalRef}
         tabIndex={-1}
       >
-        <button className="modal-close" onClick={onClose} aria-label="Close dialog" title="Close">
-          ✕
+        <button className="tm-close" onClick={onClose} aria-label="Close dialog" title="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
         </button>
 
-        <header className="modal-header">
-          <h2 id="travel-title" className="modal-title">
-            Travel options for: {selected.title || selected.name}
+        <header className="tm-header">
+          <h2 id="travel-title" className="tm-title">
+            Travel options for: <span className="tm-title-accent">{selected.title || selected.name}</span>
           </h2>
-          <div className="modal-sub">
-            {selected.when} {selected.venue && <>• {selected.venue} </>} {selected.city && <>• {selected.city}</>}
+          <div className="tm-sub">
+            {selected.when}
+            {selected.venue && <><span className="dot">•</span>{selected.venue}</>}
+            {selected.city &&  <><span className="dot">•</span>{selected.city}</>}
+          </div>
+
+          <div className="tm-bar">
+            <input
+              type="hidden"
+              className="input-search"
+              style={{ borderRadius: 10, minWidth: 240, background: '#fff' }}
+              placeholder="Trip name (e.g., Korn — London, CA)"
+              value={tripTitle}
+              onChange={(e) => setTripTitle(e.target.value)}
+            />
+            <form onSubmit={handleSave}>
+              <PrimaryButton disabled={saving} style={{ marginLeft: 8 }}>
+                {saving ? 'Saving…' : 'Bookmark this trip'}
+              </PrimaryButton>
+            </form>
+            <div className="tm-hint">Pick a flight and/or hotel, name it, then bookmark.</div>
           </div>
         </header>
 
-        <div className="modal-body">
-          <form onSubmit={handleSave}>
-            <PrimaryButton disabled={saving}>
-              {saving ? 'Saving…' : 'Bookmark this trip'}
-            </PrimaryButton>
+        {/* Scrollable content */}
+        <div className="tm-scroll">
+          <div className="tm-grid">
+            <section className="tm-section">
+              <div className="tm-sec-head">
+                <div className="tm-sec-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" className="ico" aria-hidden="true">
+                    <path d="M10 21l2-5 7-7a2 2 0 10-3-3l-7 7-5 2 2-5-3-3 4-1 5 5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Flights
+                </div>
+              </div>
 
-            <div className="travel-column">
-              <h3>Flights</h3>
               <FlightList
                 data={flights}
                 selectedFlight={selectedFlight}
                 setSelectedFlight={setSelectedFlight}
               />
-              <details className="raw-toggle">
-                <summary>Show raw</summary>
-                <pre className="pre-json">{JSON.stringify(flights, null, 2)}</pre>
-              </details>
-            </div>
+            </section>
 
-            <div className="travel-column">
-              <h3>Hotels near venue</h3>
+            <section className="tm-section">
+              <div className="tm-sec-head">
+                <div className="tm-sec-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" className="ico" aria-hidden="true">
+                    <path d="M3 21V9a3 3 0 013-3h7a5 5 0 015 5v10M3 21h18M6 12h4m4 0h4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Hotels near venue
+                </div>
+              </div>
+
               <HotelList
                 hotels={hotels}
                 selectedHotel={selectedHotel}
                 setSelectedHotel={setSelectedHotel}
               />
-              <details className="raw-toggle">
-                <summary>Show raw</summary>
-                <pre className="pre-json">{JSON.stringify(hotels, null, 2)}</pre>
-              </details>
-            </div>
-          </form>
+            </section>
+          </div>
         </div>
       </div>
     </div>

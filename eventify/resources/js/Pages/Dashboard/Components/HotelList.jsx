@@ -9,7 +9,7 @@ export default function HotelList({ hotels, selectedHotel, setSelectedHotel }) {
   return (
     <div className="cards-stack">
       {items.slice(0, 12).map((h, i) => (
-        <div className="card hotel-card" key={i}>
+        <label className="card hotel-card" key={i}>
           <input
             type="radio"
             name="hotels-select"
@@ -61,7 +61,7 @@ export default function HotelList({ hotels, selectedHotel, setSelectedHotel }) {
               </div>
             </div>
           </div>
-        </div>
+        </label>
       ))}
     </div>
   );

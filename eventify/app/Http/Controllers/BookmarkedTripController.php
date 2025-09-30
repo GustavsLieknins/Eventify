@@ -8,7 +8,6 @@ use Inertia\Inertia;
 
 class BookmarkedTripController extends Controller
 {
-    // Show all trips for current user
     public function index()
     {
         $authId = auth()->id();
@@ -52,7 +51,6 @@ class BookmarkedTripController extends Controller
             ->with('success', 'Trip saved successfully!');
     }
 
-    // Delete a trip
     public function destroy($id)
     {
         $userId = auth()->id();
