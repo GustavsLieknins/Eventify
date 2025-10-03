@@ -5,7 +5,7 @@ import TopNav from '@/Shared/TopNav';
 
 import Icon from './components/ui/Icon';
 import Button from './components/ui/Button';
-import Badge from './components/ui/Badge';
+// import Badge from './components/ui/Badge';
 import Card from './components/ui/Card';
 import Section from './components/ui/Section';
 import Empty from './components/ui/Empty';

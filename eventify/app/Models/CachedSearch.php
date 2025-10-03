@@ -52,4 +52,10 @@ class CachedSearch extends Model
         $this->expires_at    = $now->addMinutes($hardMinutes);
         $this->error_text    = null;
     }
+
+    public static function makeEtagFromPayload(array|string $payload): string
+    {
+        $raw = is_array($payload) ? json_encode($payload) : (string) $payload;
+        return 'W/"'.substr(hash('sha256', $raw), 0, 40).'"';
+    }
 }

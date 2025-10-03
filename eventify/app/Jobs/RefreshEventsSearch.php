@@ -19,20 +19,24 @@ class RefreshEventsSearch implements ShouldQueue
     public ?int $softMinutes;
     public ?int $hardMinutes;
 
+    public int $tries = 5;
+    public array $backoff = [60, 120, 300, 600];
 
     public function __construct(array $params, string $keyHash, ?int $softMinutes = null, ?int $hardMinutes = null)
     {
-        $this->params = $params;
-        $this->keyHash = $keyHash;
-        $this->softMinutes = $softMinutes;
-        $this->hardMinutes = $hardMinutes;
+        $this->params       = $params;
+        $this->keyHash      = $keyHash;
+        $this->softMinutes  = $softMinutes;
+        $this->hardMinutes  = $hardMinutes;
         $this->onQueue(config('queue.connections.database.queue', 'default'));
     }
 
-   public function handle(HasDataClient $hasData): void
+    public function handle(HasDataClient $hasData): void
     {
+        // fetch live
         $payload = $hasData->events($this->params);
 
+        // upsert cache row
         $cache = CachedSearch::firstOrNew(['key_hash' => $this->keyHash]);
         $cache->params_json = $this->params;
 
@@ -41,15 +45,16 @@ class RefreshEventsSearch implements ShouldQueue
 
         if ($hasDataNow) {
             $cache->payload_json = json_encode($payload);
+            $cache->etag = CachedSearch::makeEtagFromPayload($payload);
             $cache->status = 'fresh';
             $cache->markFresh($this->softMinutes ?? 10, $this->hardMinutes ?? 1440);
         } else {
+            // don't clobber a good payload with empty results
             $cache->status = $cache->exists && $cache->payload_json ? 'stale' : 'error';
         }
 
         $cache->save();
     }
-
 
     public function failed(\Throwable $e): void
     {
