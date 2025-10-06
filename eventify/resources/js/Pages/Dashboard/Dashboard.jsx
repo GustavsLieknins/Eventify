@@ -8,6 +8,7 @@ import Toasts from './components/Toasts';
 import SearchHeader from './components/SearchHeader';
 import EventCard from './components/EventCard';
 import TravelModal from './components/TravelModal';
+import useVisitBeacon from '@/Shared/useVisitBeacon';
 
 import {
   DEFAULT_GL, DEFAULT_HL, DEFAULT_EVENT_LOCATION,
@@ -23,6 +24,7 @@ const cacheKey = (q, when, loc) => `${q}|||${when || ''}|||${loc || ''}`;
 const CACHE_TTL_MS = 1000 * 60 * 60;
 
 export default function Dashboard() {
+  useVisitBeacon();
   const [q, setQ] = useState('');
   const [location, setLocation] = useState('');
   const [when, setWhen] = useState('');

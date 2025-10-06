@@ -11,9 +11,9 @@ return new class extends Migration {
             $table->id();
             $table->string('slug', 64)->unique();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            // point to your bookmarked trips table; adjust table/model name if needed
+
             $table->foreignId('trip_id')->constrained('bookmarked_trips')->cascadeOnDelete();
-            $table->timestamp('expires_at')->nullable(); // null = never expires
+            $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 
             $table->index(['trip_id', 'user_id']);

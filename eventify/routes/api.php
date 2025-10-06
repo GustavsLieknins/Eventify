@@ -1,13 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TripController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\TelemetryController;
+
+Route::post('/telemetry/visit', [TelemetryController::class, 'visit']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/trips', [TripController::class, 'index']);

@@ -14,10 +14,13 @@ import ConfirmDialog from './components/ConfirmDialog';
 import TripMapPane from './components/TripMapPane';
 import FlightList from './components/FlightList';
 import HotelList from './components/HotelList';
+import useVisitBeacon from '@/Shared/useVisitBeacon';
+
 
 const RELAY_KEY = 'toastRelay';
 
 export default function Bookmarks({ trips: initialTrips, user }) {
+  useVisitBeacon();
   const { flash } = usePage().props;
 
   const [trips, setTrips] = useState(() => initialTrips || []);

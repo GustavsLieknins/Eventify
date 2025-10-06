@@ -12,7 +12,10 @@ use Illuminate\Queue\SerializesModels;
 
 class RefreshEventsSearch implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     public array $params;
     public string $keyHash;
@@ -24,19 +27,17 @@ class RefreshEventsSearch implements ShouldQueue
 
     public function __construct(array $params, string $keyHash, ?int $softMinutes = null, ?int $hardMinutes = null)
     {
-        $this->params       = $params;
-        $this->keyHash      = $keyHash;
-        $this->softMinutes  = $softMinutes;
-        $this->hardMinutes  = $hardMinutes;
+        $this->params = $params;
+        $this->keyHash = $keyHash;
+        $this->softMinutes = $softMinutes;
+        $this->hardMinutes = $hardMinutes;
         $this->onQueue(config('queue.connections.database.queue', 'default'));
     }
 
     public function handle(HasDataClient $hasData): void
     {
-        // fetch live
         $payload = $hasData->events($this->params);
 
-        // upsert cache row
         $cache = CachedSearch::firstOrNew(['key_hash' => $this->keyHash]);
         $cache->params_json = $this->params;
 
@@ -49,7 +50,6 @@ class RefreshEventsSearch implements ShouldQueue
             $cache->status = 'fresh';
             $cache->markFresh($this->softMinutes ?? 10, $this->hardMinutes ?? 1440);
         } else {
-            // don't clobber a good payload with empty results
             $cache->status = $cache->exists && $cache->payload_json ? 'stale' : 'error';
         }
 

@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { Head } from '@inertiajs/react';
 import './Bookmarks.css';
+import useVisitBeacon from '@/Shared/useVisitBeacon';
 
 const Badge = ({children, tone='glass'}) => (
   <span className={`ui-badge ui-badge--${tone}`}>{children}</span>
@@ -16,6 +17,7 @@ const Section = ({title, children}) => (
 const Card = ({children}) => <section className="ui-card">{children}</section>;
 
 export default function SharedTrip({ slug, title, trip, meta }) {
+  useVisitBeacon();
   const fmtDuration = useCallback((mins)=>{
     if (!mins || isNaN(mins)) return '';
     const h = Math.floor(mins/60), m = mins%60;

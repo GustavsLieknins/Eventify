@@ -6,20 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class BookmarkedTrip extends Model
 {
-    protected $fillable = [
-        'user_id',
-        'title',
-        'flights',
-        'hotels',
-    ];
+    protected $fillable = ['user_id', 'title', 'flights', 'hotels'];
 
     protected $casts = [
         'flights' => 'array',
         'hotels'  => 'array',
     ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 }

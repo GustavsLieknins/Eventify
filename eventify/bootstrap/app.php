@@ -12,17 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // add Inertia middleware to web group
         $middleware->appendToGroup('web', [
-            \App\Http\Middleware\HandleInertiaRequests::class,
+            App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 
-        // your admin alias from earlier
         $middleware->alias([
-            'admin' => \App\Http\Middleware\UserAdmin::class,
+            'admin' => App\Http\Middleware\UserAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // empty is fine
     })
     ->create();

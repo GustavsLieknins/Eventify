@@ -8,13 +8,12 @@ class HasDataClient
 {
     private string $baseUrl;
     private string $apiKey;
-    // /** @var array<string,string> */
     private array $endpoints;
 
     public function __construct()
     {
-        $this->baseUrl   = (string) config('services.hasdata.base_url');
-        $this->apiKey    = (string) config('services.hasdata.api_key');
+        $this->baseUrl = (string) config('services.hasdata.base_url');
+        $this->apiKey = (string) config('services.hasdata.api_key');
         $this->endpoints = (array) config('services.hasdata.endpoints');
     }
 
@@ -22,8 +21,8 @@ class HasDataClient
     {
         return Http::withHeaders([
             'Content-Type' => 'application/json',
-            'x-api-key'    => $this->apiKey,
-            'User-Agent'   => 'Eventify/1.0 (+server-cache)',
+            'x-api-key' => $this->apiKey,
+            'User-Agent' => 'Eventify/1.0 (+server-cache)',
         ])->baseUrl($this->baseUrl);
     }
 
