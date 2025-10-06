@@ -15,6 +15,10 @@ use App\Http\Controllers\ShareLinkController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth', 'verified', 'admin'])->group(function () {
+    Route::get('/admin', fn () => Inertia::render('Admin/Dashboard'))->name('admin.dashboard');
+});
+
 
 Route::get('/', function () {
     return redirect()->route('dashboard');

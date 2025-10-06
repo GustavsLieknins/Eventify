@@ -9,6 +9,7 @@ use App\Services\HasDataClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
@@ -34,6 +35,17 @@ class EventController extends Controller
         $keyHash    = hash('sha256', json_encode($normalized));
 
         $cache = CachedSearch::where('key_hash', $keyHash)->first();
+
+
+
+      
+        DB::table('search_logs')->insert([
+            'user_id'  => optional($request->user())->id,
+            'query'    => $q,
+            'ip'       => $request->ip(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         // Serve from cache if present
         if ($cache) {
