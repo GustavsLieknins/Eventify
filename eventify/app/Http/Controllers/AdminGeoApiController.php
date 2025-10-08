@@ -2,44 +2,77 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\VisitLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminGeoApiController extends Controller
 {
     public function points(Request $request)
     {
-        $days = (int) $request->query('days', 30);
-        $rows = VisitLog::query()
-            ->selectRaw('ROUND(lat, 1) as lat, ROUND(lng, 1) as lng, COUNT(*) as c')
-            ->whereNotNull('lat')->whereNotNull('lng')
-            ->where('created_at', '>=', now()->subDays($days))
-            ->groupBy('lat', 'lng')
-            ->orderByDesc('c')
-            ->limit(5000)
-            ->get()
-            ->map(fn ($r) => ['lat' => (float) $r->lat, 'lng' => (float) $r->lng, 'count' => (int) $r->c]);
+        $days = (int) $request->query('days', 365); // generous default
+        $since = now()->subDays(max(0, $days));
+        $limit = (int) $request->query('limit', 5000);
+        $round = (float) $request->query('round', 0.1); // degrees grid
+        $all = (int) $request->query('all', 0) === 1; // bypass date filter for debugging
 
-        return response()->json(['points' => $rows]);
+        // MySQL ROUND to 1 decimal by default (0.1 grid). Force floats in JSON.
+        $q = DB::table('visit_logs')
+            ->selectRaw('ROUND(lat, 1) as lat_r, ROUND(lng, 1) as lng_r, COUNT(*) as c')
+            ->whereNotNull('lat')
+            ->whereNotNull('lng');
+
+        if (!$all) {
+            $q->where('created_at', '>=', $since);
+        }
+
+        $rows = $q->groupBy('lat_r', 'lng_r')
+            ->orderByDesc('c')
+            ->limit($limit)
+            ->get();
+
+        $points = $rows->map(function ($r) {
+            return [
+                'lat' => $r->lat_r !== null ? (float) $r->lat_r : null,
+                'lng' => $r->lng_r !== null ? (float) $r->lng_r : null,
+                'count' => (int) $r->c,
+            ];
+        })->values();
+
+        return response()->json([
+            'points' => $points,
+            '_meta' => [
+                'total_points' => $points->count(),
+                'since' => $all ? null : $since->toIso8601String(),
+                'grid_deg' => 0.1,
+            ],
+        ]);
     }
 
     public function latest(Request $request)
     {
-        $limit = (int) $request->query('limit', 500);
-        $rows = VisitLog::query()
-            ->whereNotNull('lat')->whereNotNull('lng')
+        $limit = (int) $request->query('limit', 100);
+
+        $visits = DB::table('visit_logs')
+            ->select('id', 'path', 'country', 'lat', 'lng', 'city', 'region', 'created_at')
             ->orderByDesc('id')
             ->limit($limit)
-            ->get(['lat', 'lng', 'country', 'city', 'region', 'created_at'])
-            ->map(fn ($r) => [
-                'lat' => (float) $r->lat,
-                'lng' => (float) $r->lng,
-                'country' => $r->country,
-                'city' => $r->city,
-                'region' => $r->region,
-                'ts' => $r->created_at?->toIso8601String(),
-            ]);
+            ->get()
+            ->map(function ($r) {
+                return [
+                    'id' => (int) $r->id,
+                    'path' => (string) $r->path,
+                    'country' => $r->country ? (string) $r->country : null,
+                    'lat' => $r->lat !== null ? (float) $r->lat : null,
+                    'lng' => $r->lng !== null ? (float) $r->lng : null,
+                    'city' => $r->city ?: null,
+                    'region' => $r->region ?: null,
+                    'created_at' => optional($r->created_at)->toDateTimeString(),
+                ];
+            });
 
-        return response()->json(['visits' => $rows]);
+        return response()->json([
+            'visits' => $visits,
+            '_meta' => ['count' => $visits->count()],
+        ]);
     }
 }

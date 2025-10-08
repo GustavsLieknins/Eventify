@@ -2,6 +2,8 @@ import React from 'react';
 import { usePage } from '@inertiajs/react';
 import TopNav from '@/Shared/TopNav';
 import './Admin.css';
+import AdminGlobeCDN from './AdminGlobeCDN';
+
 
 function Stat({ label, value }) {
   return (
@@ -56,9 +58,14 @@ export default function AdminDashboard() {
             <Stat label="Trips Saved" value={totals.trips ?? 0} />
           </div>
 
-          <div className="grid-2" style={{ marginTop: 16 }}>
-            <List title="Top Countries" items={topCountries} labelKey="country" valueKey="c" />
-            <List title="Top Pages" items={topPaths} labelKey="path" valueKey="c" />
+          <div className="grid md:grid-cols-3 gap-4" style={{ marginTop: 16 }}>
+            <div className="md:col-span-2">
+              <AdminGlobeCDN api="/admin/geo/points?days=365" />
+            </div>
+            <div className="grid-2" style={{ gap: 16 }}>
+              <List title="Top Countries" items={topCountries} labelKey="country" valueKey="c" />
+              <List title="Top Pages" items={topPaths} labelKey="path" valueKey="c" />
+            </div>
           </div>
 
           <div className="grid-2" style={{ marginTop: 16 }}>

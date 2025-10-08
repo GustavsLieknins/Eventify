@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminGeoApiController;
 use App\Http\Controllers\AdminStatsApiController;
 use App\Http\Controllers\AdminStatsController;
 use App\Http\Controllers\Api\EventController;
@@ -13,6 +14,9 @@ use Inertia\Inertia;
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::get('/admin', [AdminStatsController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/stats.json', [AdminStatsApiController::class, 'index'])->name('admin.stats.json');
+    Route::get('/admin/stats.json', [AdminStatsApiController::class, 'index'])->name('admin.stats.json');
+    Route::get('/admin/geo/points', [AdminGeoApiController::class, 'points'])->name('admin.geo.points');
+    Route::get('/admin/geo/latest', [AdminGeoApiController::class, 'latest'])->name('admin.geo.latest');
 });
 
 Route::get('/', function () {

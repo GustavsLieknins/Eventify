@@ -17,78 +17,81 @@ import {
   getEventTravelDates, guessOriginIata,
 } from './utils';
 
-const _uid = () => Math.random().toString(36).slice(2, 9);
-
+const uid = () => Math.random().toString(36).slice(2, 9);
 const searchCache = new Map();
 const cacheKey = (q, when, loc) => `${q}|||${when || ''}|||${loc || ''}`;
 const CACHE_TTL_MS = 1000 * 60 * 60;
 
 export default function Dashboard() {
   useVisitBeacon();
-  const [q, setQ] = useState('');
-  const [location, setLocation] = useState('');
-  const [when, setWhen] = useState('');
-
-  const [loading, setLoading] = useState(false);
-  const [events, setEvents] = useState([]);
-
-  const [lastQuery, setLastQuery] = useState('');
-  const [searchTriggered, setSearchTriggered] = useState(false);
-  const [pageStart, setPageStart] = useState(0);
-
-  const showLanding = !loading && events.length === 0 && !searchTriggered && !lastQuery;
-
-  const reqIdRef = useRef(0);
-
-  const [selected, setSelected] = useState(null);
-  const [flights, setFlights] = useState(null);
-  const [hotels, setHotels] = useState([]);
-  const [usedArrival, setUsedArrival] = useState('');
-
-  const [selectedFlight, setSelectedFlight] = useState(null);
-  const [selectedHotel, setSelectedHotel] = useState(null);
 
   const { auth } = usePage().props;
   const userId = auth?.user?.id ?? null;
 
+  const [q, setQ] = useState('');
+  const [location, setLocation] = useState('');
+  const [when, setWhen] = useState('');
+  const [originIata, setOriginIata] = useState('RIX');
+
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTriggered, setSearchTriggered] = useState(false);
+  const [lastQuery, setLastQuery] = useState('');
+  const [pageStart, setPageStart] = useState(0);
+
+  const [selected, setSelected] = useState(null);
+  const [showTravel, setShowTravel] = useState(false);
+  const [flights, setFlights] = useState(null);
+  const [hotels, setHotels] = useState([]);
+  const [usedArrival, setUsedArrival] = useState('');
   const [arrivalOverride, setArrivalOverride] = useState('');
   const [outboundDate, setOutboundDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
-
-  const [originIata, setOriginIata] = useState('RIX');
-
-  const [showTravel, setShowTravel] = useState(false);
-  const modalRef = useRef(null);
-
+  const [selectedFlight, setSelectedFlight] = useState(null);
+  const [selectedHotel, setSelectedHotel] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  const reqIdRef = useRef(0);
+  const modalRef = useRef(null);
+
   const [toasts, setToasts] = useState([]);
-  const pushToast = ({ title, message = '', tone = 'info', ttl = 3800 }) => {
-    const id = _uid();
+  const toast = ({ title, message = '', tone = 'info', ttl = 3800 }) => {
+    const id = uid();
     setToasts(t => [...t, { id, title, message, tone, ttl }]);
     window.setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), ttl + 250);
   };
   const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
 
+  const showLanding = !loading && events.length === 0 && !searchTriggered && !lastQuery;
+
+  const resetSearchUI = () => {
+    setEvents([]);
+    setPageStart(0);
+    setSelected(null);
+    setFlights(null);
+    setHotels([]);
+    setShowTravel(false);
+    setUsedArrival('');
+    setSelectedFlight(null);
+    setSelectedHotel(null);
+  };
+
   useEffect(() => {
-    let mounted = true;
+    let on = true;
     (async () => {
-      const iata = await guessOriginIata('RIX');
-      if (mounted) setOriginIata(iata || 'RIX');
+      const i = await guessOriginIata('RIX');
+      if (on) setOriginIata(i || 'RIX');
     })();
-    return () => { mounted = false; };
+    return () => { on = false; };
   }, []);
 
   const searchEvents = async (reset = true, overrides = {}) => {
-    const qVal     = ((overrides.q ?? q) || '').trim();
-    const whenVal  = overrides.when ?? when;
-    const locVal   = overrides.location ?? (location || DEFAULT_EVENT_LOCATION);
+    const qVal = ((overrides.q ?? q) || '').trim();
+    const whenVal = overrides.when ?? when;
+    const locVal = overrides.location ?? (location || DEFAULT_EVENT_LOCATION);
     const startVal = reset ? 0 : pageStart;
 
-    if (!qVal) {
-      pushToast({ title: 'Type something to search', tone: 'warn' });
-      return;
-    }
+    if (!qVal) { toast({ title: 'Type something to search', tone: 'warn' }); return; }
 
     const key = cacheKey(qVal, whenVal, locVal);
     setLastQuery(qVal);
@@ -98,35 +101,26 @@ export default function Dashboard() {
       const cached = searchCache.get(key);
       const fresh = cached && (Date.now() - cached.ts) < CACHE_TTL_MS;
       setEvents(fresh && Array.isArray(cached.items) ? cached.items : []);
-      setPageStart(0);
-      setSelected(null);
-      setFlights(null);
-      setHotels([]);
-      setShowTravel(false);
-      setUsedArrival('');
+      resetSearchUI();
     }
 
-    const myReqId = ++reqIdRef.current;
+    const myReq = ++reqIdRef.current;
     setLoading(true);
 
     try {
       const { data } = await axios.get('/api/events', {
         params: { q: qVal, location: locVal, when: whenVal, gl: DEFAULT_GL, hl: DEFAULT_HL, start: startVal },
       });
-
-      if (myReqId !== reqIdRef.current) return;
+      if (myReq !== reqIdRef.current) return;
 
       const items = normalizeEvents(data);
       setEvents(prev => (reset ? items : [...prev, ...items]));
-
-      if (reset) {
-        searchCache.set(key, { ts: Date.now(), items });
-      }
+      if (reset) searchCache.set(key, { ts: Date.now(), items });
     } catch (err) {
       const msg = err?.response?.data?.error || err?.message || 'Search failed';
-      pushToast({ title: msg, tone: 'error' });
+      toast({ title: msg, tone: 'error' });
     } finally {
-      if (myReqId === reqIdRef.current) setLoading(false);
+      if (myReq === reqIdRef.current) setLoading(false);
     }
   };
 
@@ -135,36 +129,33 @@ export default function Dashboard() {
     setQ(term);
     setWhen(whenVal || '');
     setLocation(city ? loc : '');
-
     await searchEvents(true, { q: term, when: whenVal || '', location: loc });
   };
 
   useEffect(() => {
     if (!showTravel) return;
-    const prevOverflow = document.body.style.overflow;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.body.classList.add('modal-open');
-
     const onKey = (e) => { if (e.key === 'Escape') setShowTravel(false); };
     window.addEventListener('keydown', onKey);
     if (modalRef.current) modalRef.current.focus();
-
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prev;
       document.body.classList.remove('modal-open');
       window.removeEventListener('keydown', onKey);
     };
   }, [showTravel]);
 
   const loadMore = async () => {
-    setPageStart((prev) => prev + 10);
+    setPageStart(p => p + 10);
     await searchEvents(false);
   };
 
-  const fetchFlightsWithFallbacks = async (from, arrivalList, dOutISO, dRetISO, stayNights) => {
-    for (const arrivalId of arrivalList) {
+  const fetchFlightsWithFallbacks = async (from, arrivals, dOutISO, dRetISO, stayNights) => {
+    for (const arrivalId of arrivals) {
       try {
-        const res = await axios.get('/api/travel/flights', {
+        const r = await axios.get('/api/travel/flights', {
           params: {
             from, fromId: from, origin: from,
             arrivalId, to: arrivalId, toId: arrivalId, destination: arrivalId,
@@ -173,20 +164,18 @@ export default function Dashboard() {
             stayNights,
           },
         });
-        if (hasAnyFlights(res.data)) {
-          setFlights(res.data);
+        if (hasAnyFlights(r.data)) {
+          setFlights(r.data);
           setUsedArrival(arrivalId);
-          if (arrivalList[0] !== arrivalId) {
-            pushToast({ title: `Using nearby airport: ${arrivalId}`, message: 'Found better availability.', tone: 'info' });
+          if (arrivals[0] !== arrivalId) {
+            toast({ title: `Using nearby airport: ${arrivalId}`, message: 'Found better availability.', tone: 'info' });
           }
           return true;
         }
-      } catch {
-
-      }
+      } catch {}
     }
     setFlights({ error: 'No flights found for nearby airports' });
-    setUsedArrival(arrivalList[0] || '');
+    setUsedArrival(arrivals[0] || '');
     return false;
   };
 
@@ -198,11 +187,10 @@ export default function Dashboard() {
     setUsedArrival('');
 
     const { departISO, returnISO } = getEventTravelDates(evt);
-
     if (!departISO || !returnISO) {
       const today = new Date();
       const out = new Date(today); out.setDate(today.getDate() + 14);
-      const ret = new Date(out);   ret.setDate(out.getDate() + 1);
+      const ret = new Date(out); ret.setDate(out.getDate() + 1);
       setOutboundDate(out.toISOString().slice(0, 10));
       setReturnDate(ret.toISOString().slice(0, 10));
     } else {
@@ -214,10 +202,10 @@ export default function Dashboard() {
     const venue = evt?.venue || '';
 
     try {
-      const primary = await axios.get('/api/travel/hotels', {
+      const res = await axios.get('/api/travel/hotels', {
         params: { q: venue ? `hotels near ${venue} ${city}` : `hotels in ${city}`, city, venue },
       });
-      const h = primary.data;
+      const h = res.data;
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
       setHotels(Array.isArray(list) ? list : []);
     } catch { setHotels([]); }
@@ -228,7 +216,6 @@ export default function Dashboard() {
 
     const outISO = departISO || outboundDate;
     const retISO = returnISO || returnDate;
-
     await fetchFlightsWithFallbacks(originIata || 'RIX', candidates, outISO, retISO, 1);
   };
 
@@ -256,10 +243,10 @@ export default function Dashboard() {
     const city = selected?.city || '';
     const venue = selected?.venue || '';
     try {
-      const res = await axios.get('/api/travel/hotels', {
+      const r = await axios.get('/api/travel/hotels', {
         params: { q: venue ? `hotels near ${venue} ${city}` : `hotels in ${city}`, city, venue },
       });
-      const h = res.data;
+      const h = r.data;
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
       setHotels(Array.isArray(list) ? list : []);
     } catch { setHotels([]); }
@@ -267,25 +254,21 @@ export default function Dashboard() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!userId) { pushToast({ title: 'Please sign in first', tone: 'warn' }); return; }
+    if (!userId) { toast({ title: 'Please sign in first', tone: 'warn' }); return; }
 
     const flightOptions = extractFlightOptions(flights).map(normalizeFlightOption).slice(0, 10);
-    const hotelOptions  = (Array.isArray(hotels) ? hotels : []).map(normalizeHotel);
+    const hotelOptions = (Array.isArray(hotels) ? hotels : []).map(normalizeHotel);
+    const ok = (i, arr) => Number.isInteger(i) && i >= 0 && i < arr.length;
 
-    const isValidIndex = (i, arr) => Number.isInteger(i) && i >= 0 && i < arr.length;
+    const chosenFlight = ok(selectedFlight, flightOptions) ? flightOptions[selectedFlight] : null;
+    const chosenHotel = ok(selectedHotel, hotelOptions) ? hotelOptions[selectedHotel] : null;
 
-    const selectedFlightData = isValidIndex(selectedFlight, flightOptions) ? flightOptions[selectedFlight] : null;
-    const selectedHotelData  = isValidIndex(selectedHotel,  hotelOptions)  ? hotelOptions[selectedHotel]  : null;
-
-    if (!selectedFlightData && !selectedHotelData) {
-      pushToast({ title: 'Select a flight or hotel first', tone: 'warn' });
-      return;
-    }
+    if (!chosenFlight && !chosenHotel) { toast({ title: 'Select a flight or hotel first', tone: 'warn' }); return; }
 
     const payload = {
       title: suggestTripTitle(selected, usedArrival) || 'My Trip',
-      flights: selectedFlightData ? [selectedFlightData] : [],
-      hotels:  selectedHotelData  ? [selectedHotelData]  : [],
+      flights: chosenFlight ? [chosenFlight] : [],
+      hotels: chosenHotel ? [chosenHotel] : [],
       user_id: userId,
     };
 
@@ -310,7 +293,7 @@ export default function Dashboard() {
       onSuccess: () => { router.visit('/bookmarks', { replace: true }); },
       onError: () => {
         try { sessionStorage.removeItem('toastRelay'); } catch {}
-        pushToast({ title: 'Failed to save trip', tone: 'error' });
+        toast({ title: 'Failed to save trip', tone: 'error' });
       },
       onFinish: () => setSaving(false),
     });
@@ -319,7 +302,6 @@ export default function Dashboard() {
   return (
     <>
       <TopNav active="dashboard" />
-
       <div className={`main-wrapper ${searchTriggered ? 'search-active' : ''} ${showLanding ? 'landing' : ''}`}>
         <Toasts toasts={toasts} onDismiss={dismissToast} />
 
@@ -332,15 +314,15 @@ export default function Dashboard() {
           onSubmitSearch={(e, currentQ) => {
             e.preventDefault();
             const liveQ = (currentQ ?? q ?? '').trim();
-            if (!liveQ) { pushToast({ title: 'Type something to search', tone: 'warn' }); return; }
+            if (!liveQ) { toast({ title: 'Type something to search', tone: 'warn' }); return; }
             setQ(liveQ);
             searchEvents(true, { q: liveQ });
           }}
           onClear={() => {
             setQ(''); setLocation(''); setWhen('');
-            setEvents([]); setSelected(null); setFlights(null); setHotels([]);
-            setPageStart(0); setArrivalOverride(''); setOutboundDate(''); setReturnDate('');
-            setSearchTriggered(false); setShowTravel(false); setLastQuery(''); setUsedArrival('');
+            resetSearchUI();
+            setSearchTriggered(false);
+            setLastQuery('');
           }}
           runQuickSearch={runQuickSearch}
         />
@@ -395,6 +377,14 @@ export default function Dashboard() {
             handleSave={handleSave}
             onClose={() => setShowTravel(false)}
             modalRef={modalRef}
+            refreshFlights={refreshFlights}
+            refreshHotels={refreshHotels}
+            arrivalOverride={arrivalOverride}
+            setArrivalOverride={setArrivalOverride}
+            outboundDate={outboundDate}
+            setOutboundDate={setOutboundDate}
+            returnDate={returnDate}
+            setReturnDate={setReturnDate}
           />
         )}
       </div>
