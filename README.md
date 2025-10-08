@@ -1,4 +1,4 @@
-Eventify
+<h1> Eventify </h1>
 
 Eventify is a event finder. Type an artist, festival, or keyword, and it pulls concerts and other events, then helps you find necessities like: flights, hotels, and dates. It tracks popular searches, logs visits, and lets you save and share bookmarked events. A simple dashboard that has everything you need to plan for events starting from concerts to festivals.
 
