@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BookmarkedTrip;
+use App\Models\SearchLog;
+use App\Models\ShareLink;
+use App\Models\ShareLinkVisit;
+use App\Models\VisitLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -11,66 +16,77 @@ class AdminStatsController extends Controller
     public function dashboard(Request $request)
     {
         $totals = [
-            'visits' => DB::table('visit_logs')->count(),
-            'searches' => DB::table('search_logs')->count(),
-            'share_links' => DB::table('share_links')->count(),
-
-            'share_opens' => $this->sumOrZero('share_links', 'opens') ?: DB::table('share_link_visits')->count(),
-            'trips' => DB::table('bookmarked_trips')->count(),
+            'visits' => (int) VisitLog::query()->count(),
+            'searches' => (int) SearchLog::query()->count(),
+            'share_links' => (int) ShareLink::query()->count(),
+            'share_opens' => (int) $this->sumOpens(),
+            'trips' => (int) BookmarkedTrip::query()->count(),
         ];
 
         $days = 14;
-        $visitsByDay = DB::table('visit_logs')
+
+        $visitsByDay = VisitLog::query()
             ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('d')
             ->orderBy('d')
-            ->get();
+            ->get()
+            ->map(fn ($r) => ['d' => $r->d, 'c' => (int) $r->c]);
 
-        $searchesByDay = DB::table('search_logs')
+        $searchesByDay = SearchLog::query()
             ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('d')
             ->orderBy('d')
-            ->get();
+            ->get()
+            ->map(fn ($r) => ['d' => $r->d, 'c' => (int) $r->c]);
 
-        $topCountries = DB::table('visit_logs')
+        $topCountries = VisitLog::query()
             ->select('country', DB::raw('COUNT(*) as c'))
             ->whereNotNull('country')
             ->groupBy('country')
             ->orderByDesc('c')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn ($r) => ['country' => $r->country, 'c' => (int) $r->c]);
 
-        $topPaths = DB::table('visit_logs')
+        $topPaths = VisitLog::query()
             ->select('path', DB::raw('COUNT(*) as c'))
             ->groupBy('path')
             ->orderByDesc('c')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn ($r) => ['path' => $r->path, 'c' => (int) $r->c]);
 
-        $topQueries = DB::table('search_logs')
+        $topQueries = SearchLog::query()
             ->select('query', DB::raw('COUNT(*) as c'))
             ->groupBy('query')
             ->orderByDesc('c')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn ($r) => ['query' => $r->query, 'c' => (int) $r->c]);
 
-        $topSavedTitles = DB::table('bookmarked_trips')
+        $topSavedTitles = BookmarkedTrip::query()
             ->select('title', DB::raw('COUNT(*) as c'))
             ->whereNotNull('title')
             ->where('title', '<>', '')
             ->groupBy('title')
             ->orderByDesc('c')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn ($r) => ['title' => $r->title, 'c' => (int) $r->c]);
 
-        $topShared = DB::table('share_links')
-            ->join('bookmarked_trips', 'bookmarked_trips.id', '=', 'share_links.trip_id')
-            ->select('share_links.id', 'share_links.slug', 'share_links.opens', 'bookmarked_trips.title')
-            ->orderByDesc('share_links.opens')
+        $topShared = ShareLink::query()
+            ->with(['trip:id,title'])
+            ->orderByDesc('opens')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn ($l) => [
+                'id' => $l->id,
+                'slug' => $l->slug,
+                'opens' => (int) $l->opens,
+                'title' => optional($l->trip)->title,
+            ]);
 
         return Inertia::render('Admin/Dashboard', [
             'totals' => $totals,
@@ -84,10 +100,10 @@ class AdminStatsController extends Controller
         ]);
     }
 
-    private function sumOrZero(string $table, string $column): int
+    private function sumOpens(): int
     {
-        $exists = DB::getSchemaBuilder()->hasColumn($table, $column);
-
-        return $exists ? (int) DB::table($table)->sum($column) : 0;
+        return \Schema::hasColumn('share_links', 'opens')
+            ? (int) ShareLink::query()->sum('opens')
+            : (int) ShareLinkVisit::query()->count();
     }
 }

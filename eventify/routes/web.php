@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminStatsApiController;
 use App\Http\Controllers\AdminStatsController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TravelController;
@@ -11,10 +12,7 @@ use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::get('/admin', [AdminStatsController::class, 'dashboard'])->name('admin.dashboard');
-});
-
-Route::middleware(['auth', 'verified', 'admin'])->group(function () {
-    Route::get('/admin', fn () => Inertia::render('Admin/Dashboard'))->name('admin.dashboard');
+    Route::get('/admin/stats.json', [AdminStatsApiController::class, 'index'])->name('admin.stats.json');
 });
 
 Route::get('/', function () {

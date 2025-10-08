@@ -9,9 +9,7 @@ class ShareLink extends Model
 {
     protected $fillable = ['slug', 'user_id', 'trip_id', 'expires_at', 'opens'];
 
-    protected $casts = [
-        'expires_at' => 'datetime',
-    ];
+    protected $casts = ['expires_at' => 'datetime'];
 
     public function trip(): BelongsTo
     {

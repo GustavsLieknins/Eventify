@@ -20,6 +20,10 @@ class TelemetryController extends Controller
             'ip' => $request->ip(),
             'user_agent' => substr((string) $request->userAgent(), 0, 1024),
             'meta' => $request->input('meta', null),
+            'lat' => $request->input('lat'),
+            'lng' => $request->input('lng'),
+            'city' => $request->input('city'),
+            'region' => $request->input('region'),
         ]);
 
         return response()->json(['ok' => true]);
@@ -27,18 +31,17 @@ class TelemetryController extends Controller
 
     private function countryFromRequest(Request $request): ?string
     {
-        $candidates = [
-            'CF-IPCountry', 'X-Country-Code', 'X-Geo-Country', 'X-App-Country',
-        ];
-        foreach ($candidates as $h) {
+        foreach (['CF-IPCountry', 'X-Country-Code', 'X-Geo-Country', 'X-App-Country'] as $h) {
             $v = $request->headers->get($h);
             if ($v && strlen($v) === 2) {
                 return strtoupper($v);
             }
         }
-
         $p = (string) $request->input('country', '');
+        if ($p && strlen($p) === 2) {
+            return strtoupper($p);
+        }
 
-        return $p && strlen($p) === 2 ? strtoupper($p) : null;
+        return null;
     }
 }
