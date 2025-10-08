@@ -4,7 +4,7 @@ Eventify is a event finder. Type an artist, festival, or keyword, and it pulls c
 
 How to run this project (terminal):
 
-1. Opel up terminal
+1. Open up your terminal
 
 2. Go to your desired folder
 
