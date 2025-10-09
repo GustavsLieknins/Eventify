@@ -1228,13 +1228,13 @@ body::before {
   color: #9ec5ff;
   text-decoration: underline;
 }
-/* skeleton bits but keep your original classes */
+
 .event-card.is-loading .event-title,
 .event-card.is-loading .event-meta {
   color: transparent;
 }
 
-/* lines */
+
 .sk-line {
   display: inline-block;
   border-radius: 8px;
@@ -1257,7 +1257,7 @@ body::before {
   margin-top: 8px;
 }
 
-/* fake buttons sized like .btn.small */
+
 .sk-btn {
   display: inline-block;
   height: 30px;
@@ -1273,7 +1273,7 @@ body::before {
   animation: sk-shimmer 1.15s linear infinite;
 }
 
-/* shimmer */
+
 @keyframes sk-shimmer {
   0% {
     background-position: -200% 0;
@@ -1281,4 +1281,33 @@ body::before {
   100% {
     background-position: 200% 0;
   }
+} 
+
+.tm-skel .sk-line,
+.tm-skel .sk-box,
+.tm-skel .sk-chip,
+.tm-skel .sk-btn {
+  display: inline-block;
+  background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.16), rgba(255,255,255,0.08));
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.2s linear infinite;
+  border-radius: 8px;
+}
+
+.tm-skel .sk-line { height: 12px; width: 100%; margin: 6px 0; }
+.tm-skel .sk-line.lg { height: 16px; }
+.tm-skel .sk-line.md { height: 14px; width: 70%; }
+.tm-skel .sk-line.xs { height: 10px; width: 40%; }
+
+.tm-skel .sk-box.sm { width: 38px; height: 18px; border-radius: 6px; }
+.tm-skel .sk-box.price { width: 86px; height: 22px; border-radius: 10px; }
+
+.tm-skel .sk-chip { height: 22px; width: 80px; border-radius: 999px; margin-right: 8px; }
+.tm-skel .sk-chip.sm { height: 18px; width: 60px; }
+
+.tm-skel .sk-btn { height: 28px; width: 74px; border-radius: 10px; margin-right: 8px; }
+
+@keyframes sk-shimmer {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
 }

@@ -51,6 +51,9 @@ export default function Dashboard() {
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  const [flightsLoading, setFlightsLoading] = useState(false);
+  const [hotelsLoading, setHotelsLoading] = useState(false);
+
   const reqIdRef = useRef(0);
   const modalRef = useRef(null);
 
@@ -185,6 +188,8 @@ export default function Dashboard() {
     setFlights(null);
     setHotels([]);
     setUsedArrival('');
+    setFlightsLoading(true);
+    setHotelsLoading(true);
 
     const { departISO, returnISO } = getEventTravelDates(evt);
     if (!departISO || !returnISO) {
@@ -209,14 +214,16 @@ export default function Dashboard() {
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
       setHotels(Array.isArray(list) ? list : []);
     } catch { setHotels([]); }
+    finally { setHotelsLoading(false); }
 
     const override = (arrivalOverride || '').trim().toUpperCase();
     const candidates = override ? [override] : resolveCityToIataList(city);
-    if (candidates.length === 0) { setFlights({ error: 'No arrival airport for this city' }); return; }
+    if (candidates.length === 0) { setFlights({ error: 'No arrival airport for this city' }); setFlightsLoading(false); return; }
 
     const outISO = departISO || outboundDate;
     const retISO = returnISO || returnDate;
     await fetchFlightsWithFallbacks(originIata || 'RIX', candidates, outISO, retISO, 1);
+    setFlightsLoading(false);
   };
 
   const refreshFlights = async () => {
@@ -234,14 +241,17 @@ export default function Dashboard() {
       setReturnDate(retISO || returnDate);
     }
 
+    setFlightsLoading(true);
     setFlights(null);
     await fetchFlightsWithFallbacks(originIata || 'RIX', candidates, outISO, retISO, 1);
+    setFlightsLoading(false);
   };
 
   const refreshHotels = async () => {
     if (!selected) return;
     const city = selected?.city || '';
     const venue = selected?.venue || '';
+    setHotelsLoading(true);
     try {
       const r = await axios.get('/api/travel/hotels', {
         params: { q: venue ? `hotels near ${venue} ${city}` : `hotels in ${city}`, city, venue },
@@ -250,6 +260,7 @@ export default function Dashboard() {
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
       setHotels(Array.isArray(list) ? list : []);
     } catch { setHotels([]); }
+    finally { setHotelsLoading(false); }
   };
 
   const handleSave = async (e) => {
@@ -377,14 +388,8 @@ export default function Dashboard() {
             handleSave={handleSave}
             onClose={() => setShowTravel(false)}
             modalRef={modalRef}
-            refreshFlights={refreshFlights}
-            refreshHotels={refreshHotels}
-            arrivalOverride={arrivalOverride}
-            setArrivalOverride={setArrivalOverride}
-            outboundDate={outboundDate}
-            setOutboundDate={setOutboundDate}
-            returnDate={returnDate}
-            setReturnDate={setReturnDate}
+            flightsLoading={flightsLoading}
+            hotelsLoading={hotelsLoading}
           />
         )}
       </div>

@@ -15,6 +15,8 @@ import TripMapPane from './components/TripMapPane';
 import FlightList from './components/FlightList';
 import HotelList from './components/HotelList';
 import useVisitBeacon from '@/Shared/useVisitBeacon';
+import TripGlobeArcCDN from './components/TripGlobeArcCDN';
+
 
 
 const RELAY_KEY = 'toastRelay';
@@ -274,6 +276,8 @@ export default function Bookmarks({ trips: initialTrips, user }) {
               </div>
 
               <div className="modal__scroll">
+                
+                <TripGlobeArcCDN trip={selectedTrip} />
                 <TripMapPane
                   trip={selectedTrip}
                   buildTripEmbedUrl={buildTripEmbedUrl}

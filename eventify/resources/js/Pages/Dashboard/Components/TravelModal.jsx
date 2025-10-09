@@ -2,6 +2,8 @@ import React from 'react';
 import PrimaryButton from '@/Components/PrimaryButton';
 import FlightList from './FlightList';
 import HotelList from './HotelList';
+import FlightListSkeleton from './FlightListSkeleton';
+import HotelListSkeleton from './HotelListSkeleton';
 
 export default function TravelModal({
   selected,
@@ -14,6 +16,8 @@ export default function TravelModal({
   handleSave,
   onClose,
   modalRef,
+  flightsLoading,
+  hotelsLoading,
 }) {
   if (!selected) return null;
 
@@ -49,7 +53,7 @@ export default function TravelModal({
               type="hidden"
               className="input-search"
               style={{ borderRadius: 10, minWidth: 240, background: '#fff' }}
-              placeholder="Trip name (e.g., Korn — London, CA)"
+              placeholder="Trip name"
               value={tripTitle}
               onChange={(e) => setTripTitle(e.target.value)}
             />
@@ -62,7 +66,6 @@ export default function TravelModal({
           </div>
         </header>
 
-        {/* Scrollable content */}
         <div className="tm-scroll">
           <div className="tm-grid">
             <section className="tm-section">
@@ -74,12 +77,15 @@ export default function TravelModal({
                   Flights
                 </div>
               </div>
-
-              <FlightList
-                data={flights}
-                selectedFlight={selectedFlight}
-                setSelectedFlight={setSelectedFlight}
-              />
+              {flightsLoading ? (
+                <FlightListSkeleton />
+              ) : (
+                <FlightList
+                  data={flights}
+                  selectedFlight={selectedFlight}
+                  setSelectedFlight={setSelectedFlight}
+                />
+              )}
             </section>
 
             <section className="tm-section">
@@ -91,12 +97,15 @@ export default function TravelModal({
                   Hotels near venue
                 </div>
               </div>
-
-              <HotelList
-                hotels={hotels}
-                selectedHotel={selectedHotel}
-                setSelectedHotel={setSelectedHotel}
-              />
+              {hotelsLoading ? (
+                <HotelListSkeleton />
+              ) : (
+                <HotelList
+                  hotels={hotels}
+                  selectedHotel={selectedHotel}
+                  setSelectedHotel={setSelectedHotel}
+                />
+              )}
             </section>
           </div>
         </div>

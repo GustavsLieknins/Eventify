@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const GLOBE_CDN = 'https://cdn.jsdelivr.net/npm/globe.gl';
 
-// brighter “day” earth textures from three-globe examples
 const EARTH_IMG = 'https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-marble.jpg';
 const BUMP_IMG  = 'https://unpkg.com/three-globe@2.31.1/example/img/earth-topology.png';
 
@@ -21,13 +20,11 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
     err: null
   });
 
-  // --- helpers
   const lerp = (a, b, t) => a + (b - a) * t;
   const clamp01 = (n) => Math.min(1, Math.max(0, n));
   const toPoints = (arr) =>
     (Array.isArray(arr) ? arr : [])
       .map(p => ({
-        // **these come straight from your DB API**
         lat: typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat,
         lng: typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng,
         weight: p.count != null ? Number(p.count) : 1
@@ -35,7 +32,6 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
       .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
   const heatColor = (t) => {
-    // cool → warm gradient (brighter for day texture)
     const h = lerp(210, 16, t);
     const s = lerp(80, 95, t);
     const l = lerp(58, 55, t);
@@ -83,7 +79,6 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
         await loadCDN();
         if (disposed) return;
 
-        // mount node for Globe
         const inner = document.createElement('div');
         inner.style.cssText = 'width:100%;height:100%;position:relative';
         mountRef.current = inner;
@@ -91,7 +86,6 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
 
         setUi(s => ({ ...s, probe: probeWebGL(), phase: 'creating' }));
 
-        // create globe with brighter texture
         const g = new window.Globe(inner, { waitForGlobeReady: true, animateIn: true })
           .backgroundColor('#00000000')
           .globeImageUrl(EARTH_IMG)
@@ -112,19 +106,16 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
           .pointsTransitionDuration(400)
           .onGlobeReady(() => setUi(s => ({ ...s, phase: 'ready' })));
 
-        // controls
         const controls = g.controls();
         controls.enableDamping = true;
         controls.dampingFactor = 0.06;
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0.22;
 
-        // nice lights for day texture
         const lights = g.lights();
-        lights[0].intensity = 0.9;  // ambient
-        lights[1].intensity = 1.25; // directional
+        lights[0].intensity = 0.9;  
+        lights[1].intensity = 1.25; 
 
-        // responsive
         const size = () => {
           const w = hostRef.current.clientWidth || window.innerWidth;
           const h = hostRef.current.clientHeight || 560;
@@ -136,11 +127,9 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
 
         globeRef.current = g;
 
-        // tiny placeholder while loading textures
         g.pointsData([{ lat: 0, lng: 0, weight: 1 }]);
         g.pointOfView({ lat: 23, lng: 12, altitude: 2.2 }, 800);
 
-        // fetch real DB coords
         setUi(s => ({ ...s, phase: 'fetching' }));
         const r = await fetch(api, { credentials: 'same-origin' });
         const txt = await r.text();
@@ -148,7 +137,6 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
         const json = JSON.parse(txt);
         const pts = toPoints(json.points);
 
-        // derive scales from your DB counts
         const max = pts.reduce((m, p) => Math.max(m, p.weight || 1), 1);
         const radius   = (w) => 0.10 + Math.log10(1 + w) * 0.09;
         const altitude = (w) => 0.03 + Math.log10(1 + w) * 0.13;
@@ -159,7 +147,6 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
         g.pointColor(d => color(d.weight || 1));
         g.pointsData(pts);
 
-        // subtle rings on top 5
         const top = [...pts].sort((a,b)=> (b.weight||0)-(a.weight||0)).slice(0, 5);
         g.ringsData(top.map(p => ({ ...p, maxR: 2 + clamp01((p.weight||1)/max) * 4 })));
         g.ringMaxRadius(d => d.maxR);
@@ -167,7 +154,6 @@ export default function AdminGlobeCDN({ api = '/admin/geo/points?days=365' }) {
         g.ringRepeatPeriod(d => 1200 - clamp01((d.weight||1)/max)*700);
         g.ringPropagationSpeed(1.2);
 
-        // hover emphasis
         let prev;
         g.onPointHover((o) => {
           if (prev) prev.__emph = false;
