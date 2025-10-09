@@ -12,7 +12,7 @@ import useVisitBeacon from '@/Shared/useVisitBeacon';
 
 import {
   DEFAULT_GL, DEFAULT_HL, DEFAULT_EVENT_LOCATION,
-  resolveCityToIataList, hasAnyFlights, suggestTripTitle,
+  hasAnyFlights, suggestTripTitle,
   normalizeEvents, extractFlightOptions, normalizeFlightOption, normalizeHotel,
   getEventTravelDates, guessOriginIata,
 } from './utils';
@@ -21,6 +21,34 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const searchCache = new Map();
 const cacheKey = (q, when, loc) => `${q}|||${when || ''}|||${loc || ''}`;
 const CACHE_TTL_MS = 1000 * 60 * 60;
+
+const AIRPORTS = [
+  { iata: 'RIX', lat: 56.9236, lon: 23.9711 }, { iata: 'TLL', lat: 59.4133, lon: 24.8328 },
+  { iata: 'VNO', lat: 54.6341, lon: 25.2858 }, { iata: 'HEL', lat: 60.3172, lon: 24.9633 },
+  { iata: 'ARN', lat: 59.6519, lon: 17.9186 }, { iata: 'OSL', lat: 60.1939, lon: 11.1004 },
+  { iata: 'CPH', lat: 55.6181, lon: 12.6561 }, { iata: 'LHR', lat: 51.4700, lon: -0.4543 },
+  { iata: 'LGW', lat: 51.1537, lon: -0.1821 }, { iata: 'LTN', lat: 51.8747, lon: -0.3683 },
+  { iata: 'STN', lat: 51.8850, lon: 0.2350 },  { iata: 'LCY', lat: 51.5053, lon: 0.0553 },
+  { iata: 'MAN', lat: 53.3650, lon: -2.2720 }, { iata: 'BHX', lat: 52.4539, lon: -1.7480 },
+  { iata: 'EDI', lat: 55.95, lon: -3.3725 },   { iata: 'GLA', lat: 55.8719, lon: -4.4331 },
+  { iata: 'BFS', lat: 54.6575, lon: -6.2158 }, { iata: 'DUB', lat: 53.4273, lon: -6.2436 },
+  { iata: 'CDG', lat: 49.0097, lon: 2.5479 },  { iata: 'ORY', lat: 48.7262, lon: 2.3652 },
+  { iata: 'AMS', lat: 52.3086, lon: 4.7639 },  { iata: 'FRA', lat: 50.0379, lon: 8.5622 },
+  { iata: 'MUC', lat: 48.3538, lon: 11.7861 }, { iata: 'BER', lat: 52.3667, lon: 13.5033 },
+  { iata: 'ZRH', lat: 47.4581, lon: 8.5555 },  { iata: 'GVA', lat: 46.2381, lon: 6.1089 },
+  { iata: 'BCN', lat: 41.2974, lon: 2.0833 },  { iata: 'MAD', lat: 40.4983, lon: -3.5676 },
+  { iata: 'FCO', lat: 41.8003, lon: 12.2389 }, { iata: 'MXP', lat: 45.6301, lon: 8.7281 },
+  { iata: 'JFK', lat: 40.6413, lon: -73.7781 },{ iata: 'EWR', lat: 40.6895, lon: -74.1745 },
+  { iata: 'LGA', lat: 40.7769, lon: -73.8740 },{ iata: 'BOS', lat: 42.3656, lon: -71.0096 },
+  { iata: 'MIA', lat: 25.7959, lon: -80.2870 },{ iata: 'ORD', lat: 41.9742, lon: -87.9073 },
+  { iata: 'DFW', lat: 32.8998, lon: -97.0403 },{ iata: 'ATL', lat: 33.6407, lon: -84.4277 },
+  { iata: 'SEA', lat: 47.4502, lon: -122.3088 },{ iata: 'SFO', lat: 37.6213, lon: -122.3790 },
+  { iata: 'LAX', lat: 33.9416, lon: -118.4085 },{ iata: 'YYZ', lat: 43.6777, lon: -79.6248 },
+  { iata: 'YTZ', lat: 43.6287, lon: -79.3962 },{ iata: 'YUL', lat: 45.4706, lon: -73.7408 },
+  { iata: 'YOW', lat: 45.3225, lon: -75.6692 },{ iata: 'YWG', lat: 49.9097, lon: -97.2399 },
+  { iata: 'YVR', lat: 49.1947, lon: -123.1792 },{ iata: 'YYC', lat: 51.1315, lon: -114.0106 },
+  { iata: 'YXU', lat: 43.0329, lon: -81.1539 }
+];
 
 export default function Dashboard() {
   useVisitBeacon();
@@ -66,6 +94,58 @@ export default function Dashboard() {
   const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
 
   const showLanding = !loading && events.length === 0 && !searchTriggered && !lastQuery;
+
+  const ninjasKey = import.meta.env.VITE_NINJAS_KEY || '';
+
+  const toRad = d => d * Math.PI / 180;
+  const haversineKm = (aLat, aLon, bLat, bLon) => {
+    const R = 6371;
+    const dLat = toRad(bLat - aLat);
+    const dLon = toRad(bLon - aLon);
+    const x = Math.sin(dLat/2)**2 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+  };
+
+  const parseCityIso = (label) => {
+    const parts = (label || '').split(',').map(s => s.trim()).filter(Boolean);
+    const city = parts[0] || '';
+    const iso = (parts[parts.length - 1] || '').length === 2 ? parts[parts.length - 1].toUpperCase() : '';
+    return { city, iso };
+  };
+
+  const ninjasGet = async (url) => {
+    try {
+      const r = await fetch(url, { headers: { 'X-Api-Key': ninjasKey } });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  };
+
+  const resolveCityToIataListNinjas = async (cityLabel) => {
+    const { city, iso } = parseCityIso(cityLabel);
+    if (!city) return ['LHR'];
+
+    let codes = [];
+
+    if (ninjasKey) {
+      const g = new URL('https://api.api-ninjas.com/v1/geocoding');
+      g.searchParams.set('city', city);
+      if (iso) g.searchParams.set('country', iso);
+      const geo = await ninjasGet(g.toString());
+      const c = Array.isArray(geo) ? geo[0] : null;
+
+      if (c && Number.isFinite(c.latitude) && Number.isFinite(c.longitude)) {
+        const ranked = AIRPORTS
+          .map(a => ({ code: a.iata, d: haversineKm(c.latitude, c.longitude, a.lat, a.lon) }))
+          .sort((x, y) => x.d - y.d)
+          .slice(0, 6)
+          .map(x => x.code);
+        codes = Array.from(new Set(ranked));
+      }
+    }
+
+    return codes.length ? codes : ['LHR'];
+  };
 
   const resetSearchUI = () => {
     setEvents([]);
@@ -217,9 +297,7 @@ export default function Dashboard() {
     finally { setHotelsLoading(false); }
 
     const override = (arrivalOverride || '').trim().toUpperCase();
-    const candidates = override ? [override] : resolveCityToIataList(city);
-    if (candidates.length === 0) { setFlights({ error: 'No arrival airport for this city' }); setFlightsLoading(false); return; }
-
+    const candidates = override ? [override] : await resolveCityToIataListNinjas(city);
     const outISO = departISO || outboundDate;
     const retISO = returnISO || returnDate;
     await fetchFlightsWithFallbacks(originIata || 'RIX', candidates, outISO, retISO, 1);
@@ -230,8 +308,7 @@ export default function Dashboard() {
     if (!selected) return;
     const city = selected?.city || '';
     const override = (arrivalOverride || '').trim().toUpperCase();
-    const candidates = override ? [override] : resolveCityToIataList(city);
-    if (candidates.length === 0) return;
+    const candidates = override ? [override] : await resolveCityToIataListNinjas(city);
 
     let outISO = outboundDate, retISO = returnDate;
     if (!outISO || !retISO) {

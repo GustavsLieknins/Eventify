@@ -4,178 +4,135 @@ const GLOBE_CDN = 'https://cdn.jsdelivr.net/npm/globe.gl';
 const EARTH_IMG = 'https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-marble.jpg';
 const BUMP_IMG  = 'https://unpkg.com/three-globe@2.31.1/example/img/earth-topology.png';
 
-const IATA = {
-  RIX: { lat: 56.9236, lng: 23.9711 },
-  MAN: { lat: 53.367, lng: -2.2728 },
-  LHR: { lat: 51.4700, lng: -0.4543 },
-  LGW: { lat: 51.1537, lng: -0.1821 },
-  STN: { lat: 51.8850, lng: 0.2350 },
-  DUB: { lat: 53.4273, lng: -6.2436 },
-  AMS: { lat: 52.3105, lng: 4.7683 },
-  CPH: { lat: 55.6180, lng: 12.6508 },
-  OSL: { lat: 60.1939, lng: 11.1004 },
-  HEL: { lat: 60.3172, lng: 24.9633 },
-  FRA: { lat: 50.0379, lng: 8.5622 },
-  CDG: { lat: 49.0097, lng: 2.5479 },
-  BCN: { lat: 41.2974, lng: 2.0833 },
-  MAD: { lat: 40.4893, lng: -3.5676 },
-  IST: { lat: 41.2753, lng: 28.7519 },
-  MUC: { lat: 48.3538, lng: 11.7861 },
-  WAW: { lat: 52.1657, lng: 20.9671 },
-  VNO: { lat: 54.6431, lng: 25.2790 }
-};
+function toNum(n) { const x = typeof n === 'string' ? parseFloat(n) : n; return Number.isFinite(x) ? x : null; }
+function deg2rad(d){return d*Math.PI/180;}
+function greatCircleAlt(a,b){ if(!a||!b) return 2.1; const φ1=deg2rad(a.lat), φ2=deg2rad(b.lat), Δλ=deg2rad(b.lng-a.lng); const cosc=Math.sin(φ1)*Math.sin(φ2)+Math.cos(φ1)*Math.cos(φ2)*Math.cos(Δλ); const central=Math.acos(Math.min(1,Math.max(-1,cosc))); const norm=central/Math.PI; return 1.9+norm*0.7; }
 
-function getAirportCoords(flight) {
-  const fromId = flight?.fromId || flight?.legs?.[0]?.departureAirport?.id;
-  const toId   = flight?.toId   || flight?.legs?.slice(-1)?.[0]?.arrivalAirport?.id;
-  const fromLL = flight?.legs?.[0]?.departureAirport;
-  const toLL   = flight?.legs?.slice(-1)?.[0]?.arrivalAirport;
-  const a = fromLL?.latitude && fromLL?.longitude ? { lat: Number(fromLL.latitude), lng: Number(fromLL.longitude) } : IATA[fromId || ''] || null;
-  const b = toLL?.latitude && toLL?.longitude ? { lat: Number(toLL.latitude), lng: Number(toLL.longitude) } : IATA[toId || ''] || null;
-  return { a, b, fromId, toId };
+async function loadCDN(){
+  if (window.Globe) return;
+  await new Promise((resolve, reject) => {
+    const tag = document.querySelector('script[data-globe-cdn]');
+    if (tag) { tag.addEventListener('load', resolve, { once:true }); tag.addEventListener('error', reject, { once:true }); return; }
+    const s = document.createElement('script');
+    s.src = GLOBE_CDN; s.async = true; s.defer = true; s.setAttribute('data-globe-cdn','1');
+    s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+  });
 }
 
-function getHotelCoords(hotel) {
-  const lat = hotel?.gps?.latitude;
-  const lng = hotel?.gps?.longitude;
-  return lat != null && lng != null ? { lat: Number(lat), lng: Number(lng) } : null;
+async function fetchIata(iata, apiKey){
+  const u = `https://api.api-ninjas.com/v1/airports?iata=${encodeURIComponent(iata)}`;
+  const r = await fetch(u, { headers: { 'X-Api-Key': apiKey } });
+  if (!r.ok) return null;
+  const j = await r.json();
+  const item = Array.isArray(j) && j[0] ? j[0] : null;
+  if (!item) return null;
+  const lat = toNum(item.latitude), lng = toNum(item.longitude);
+  return (lat!=null && lng!=null) ? { lat, lng, city: item.city, name: item.name } : null;
 }
 
-export default function TripGlobeArcCDN({ trip, height = 360 }) {
-  const wrapRef = useRef(null);
+export default function TripGlobeArc({ trip, ninjasKey = import.meta.env.VITE_NINJAS_KEY, height = 420 }) {
+  const hostRef = useRef(null);
   const mountRef = useRef(null);
   const globeRef = useRef(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let disposed = false;
-    const load = () =>
-      new Promise((res, rej) => {
-        if (window.Globe) return res();
-        const tag = document.querySelector('script[data-globe-cdn]');
-        if (tag) {
-          tag.addEventListener('load', () => res(), { once: true });
-          tag.addEventListener('error', () => rej(new Error('cdn error')), { once: true });
-          return;
-        }
-        const s = document.createElement('script');
-        s.src = GLOBE_CDN;
-        s.async = true;
-        s.defer = true;
-        s.setAttribute('data-globe-cdn', '1');
-        s.onload = () => res();
-        s.onerror = () => rej(new Error('cdn error'));
-        document.head.appendChild(s);
-      });
+    let disposed = false, ro;
 
     (async () => {
-      await load();
+      if (!trip) return;
+
+      const flight = trip?.flights?.[0] || null;
+      const fromIata = flight?.fromId || flight?.legs?.[0]?.departureAirport?.id || '';
+      const toIata   = flight?.toId   || flight?.legs?.slice(-1)?.[0]?.arrivalAirport?.id || '';
+
+      let from = null, to = null;
+
+      if (fromIata && ninjasKey) from = await fetchIata(fromIata, ninjasKey);
+      if (!from && flight?.legs?.[0]?.departureAirport?.lat && flight?.legs?.[0]?.departureAirport?.lon) {
+        from = { lat: toNum(flight.legs[0].departureAirport.lat), lng: toNum(flight.legs[0].departureAirport.lon) };
+      }
+
+      const hotel = trip?.hotels?.[0];
+      if (hotel?.gps?.latitude && hotel?.gps?.longitude) {
+        to = { lat: toNum(hotel.gps.latitude), lng: toNum(hotel.gps.longitude), name: hotel.title || 'Hotel' };
+      } else if (toIata && ninjasKey) {
+        to = await fetchIata(toIata, ninjasKey);
+      }
+
+      if (disposed) return;
+      if (!from || !to) { setReady(false); return; }
+
+      await loadCDN();
       if (disposed) return;
 
       const inner = document.createElement('div');
       inner.style.cssText = 'width:100%;height:100%;position:relative';
       mountRef.current = inner;
-      wrapRef.current.appendChild(inner);
+      hostRef.current.appendChild(inner);
 
       const g = new window.Globe(inner, { waitForGlobeReady: true, animateIn: true })
         .backgroundColor('#00000000')
         .globeImageUrl(EARTH_IMG)
         .bumpImageUrl(BUMP_IMG)
         .showAtmosphere(true)
-        .atmosphereColor('#a0c6ff')
+        .atmosphereColor('#98b8ff')
         .atmosphereAltitude(0.22)
-        .showGraticules(false);
+        .arcsData([{ startLat: from.lat, startLng: from.lng, endLat: to.lat, endLng: to.lng }])
+        .arcAltitude(0.2)
+        .arcStroke(0.25)
+        .arcColor(() => ['#7aa7ff', '#e0ecff'])
+        .arcDashLength(0.5)
+        .arcDashGap(0.2)
+        .arcDashAnimateTime(2200)
+        .labelsData([
+          { lat: from.lat, lng: from.lng, text: fromIata || 'FROM' },
+          { lat: to.lat,   lng: to.lng,   text: toIata || hotel?.title || 'TO' }
+        ])
+        .labelSize(0.9)
+        .labelColor(() => '#e6eefc')
+        .labelAltitude(0.01)
+        .ringsData([{...from, maxR:2.5, color:'#86a9ff'}, {...to, maxR:2.5, color:'#ffd1a8'}])
+        .ringMaxRadius(d => d.maxR)
+        .ringColor(d => [d.color, 'rgba(255,255,255,0)'])
+        .ringRepeatPeriod(900)
+        .ringPropagationSpeed(1.3)
+        .onGlobeReady(() => setReady(true));
+
+      const controls = g.controls();
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.22;
 
       const size = () => {
-        const w = wrapRef.current.clientWidth || 640;
-        const h = wrapRef.current.clientHeight || height;
+        const w = hostRef.current.clientWidth || 800;
+        const h = height;
         g.width(w); g.height(h);
       };
       size();
-      const ro = new ResizeObserver(size);
-      ro.observe(wrapRef.current);
+      ro = new ResizeObserver(size);
+      ro.observe(hostRef.current);
+
+      const alt = greatCircleAlt(from, to);
+      g.pointOfView({ lat: (from.lat+to.lat)/2, lng: (from.lng+to.lng)/2, altitude: alt }, 900);
 
       globeRef.current = g;
-      setReady(true);
-
-      return () => {
-        ro.disconnect();
-      };
     })();
 
     return () => {
       disposed = true;
-      if (mountRef.current && wrapRef.current?.contains(mountRef.current)) {
-        wrapRef.current.removeChild(mountRef.current);
-      }
+      if (ro && hostRef.current) ro.unobserve(hostRef.current);
+      if (mountRef.current && hostRef.current?.contains(mountRef.current)) hostRef.current.removeChild(mountRef.current);
       globeRef.current = null;
     };
-  }, [height]);
+  }, [trip, ninjasKey, height]);
 
-  useEffect(() => {
-    if (!ready || !trip || !globeRef.current) return;
-
-    const g = globeRef.current;
-
-    let origin = null;
-    let dest = null;
-
-    const f = Array.isArray(trip.flights) && trip.flights.length ? trip.flights[0] : null;
-    if (f) {
-      const r = getAirportCoords(f);
-      origin = r.a || origin;
-      dest   = r.b || dest;
-    }
-
-    const h = Array.isArray(trip.hotels) && trip.hotels.length ? trip.hotels[0] : null;
-    const hLL = getHotelCoords(h);
-    if (hLL) dest = hLL;
-
-    if (!origin || !dest) return;
-
-    const arc = [{
-      startLat: origin.lat,
-      startLng: origin.lng,
-      endLat: dest.lat,
-      endLng: dest.lng,
-      color: ['#99ccff', '#ffffff']
-    }];
-
-    const pins = [
-      { lat: origin.lat, lng: origin.lng, weight: 1 },
-      { lat: dest.lat,   lng: dest.lng,   weight: 1 }
-    ];
-
-    g
-      .pointsData(pins)
-      .pointAltitude(0.05)
-      .pointRadius(0.15)
-      .pointColor(() => '#7fb3ff')
-      .arcsData(arc)
-      .arcColor('color')
-      .arcDashLength(0.48)
-      .arcDashGap(0.28)
-      .arcDashInitialGap(1)
-      .arcDashAnimateTime(1800)
-      .arcStroke(0.35)
-      .arcsTransitionDuration(600)
-      .ringsData(pins.map(p => ({ ...p, maxR: 3.2 })))
-      .ringMaxRadius('maxR')
-      .ringPropagationSpeed(1.1)
-      .ringRepeatPeriod(900)
-      .ringColor(() => ['rgba(180,210,255,0.7)', 'rgba(180,210,255,0)']);
-
-    const midLat = (origin.lat + dest.lat) / 2;
-    const midLng = (origin.lng + dest.lng) / 2;
-    const dist = Math.hypot(origin.lat - dest.lat, origin.lng - dest.lng);
-    const alt = 1.8 + Math.min(0.9, dist / 90);
-    g.pointOfView({ lat: midLat, lng: midLng, altitude: alt }, 900);
-
-    const c = g.controls();
-    c.enableDamping = true;
-    c.dampingFactor = 0.06;
-    c.autoRotate = false;
-  }, [ready, trip]);
-
-  return <div className="trip-globe" ref={wrapRef} style={{ height }} />;
+  return (
+    <div className="card trip-globe">
+      <div className="card-title">Route preview</div>
+      <div ref={hostRef} style={{ width: '100%', height }} />
+      {!ready && <div className="muted center" style={{ padding: 12 }}>Loading route…</div>}
+    </div>
+  );
 }
