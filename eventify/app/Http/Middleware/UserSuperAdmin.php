@@ -4,21 +4,19 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 
-class UserAdmin
+class UserSuperAdmin
 {
     public function handle(Request $request, \Closure $next)
     {
         $user = $request->user();
-
         if (!$user) {
             return $request->expectsJson()
                 ? response()->json(['message' => 'Unauthenticated.'], 401)
                 : redirect()->route('login');
         }
-
-        if (!in_array((int) ($user->role ?? 0), [1, 2], true)) {
+        if ((int) $user->role !== 2) {
             return $request->expectsJson()
-                ? response()->json(['message' => 'Forbidden. Admins only.'], 403)
+                ? response()->json(['message' => 'Forbidden. SuperAdmins only.'], 403)
                 : abort(403, 'Forbidden');
         }
 

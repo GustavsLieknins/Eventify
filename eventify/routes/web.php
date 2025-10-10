@@ -5,15 +5,24 @@ use App\Http\Controllers\AdminStatsApiController;
 use App\Http\Controllers\AdminStatsController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\TravelController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\BookmarkedTripController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShareLinkController;
+use App\Http\Controllers\SuperAdminController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+Route::middleware(['auth', 'superadmin'])->group(function () {
+    Route::get('/superadmin', [SuperAdminController::class, 'index'])->name('superadmin.index');
+    Route::post('/superadmin/{user}/promote', [SuperAdminController::class, 'promote'])->name('superadmin.promote');
+    Route::post('/superadmin/{user}/demote', [SuperAdminController::class, 'demote'])->name('superadmin.demote');
+    Route::post('/superadmin/{user}/make-super', [SuperAdminController::class, 'makeSuper'])->name('superadmin.makeSuper');
+    Route::post('/superadmin/{user}/remove-super', [SuperAdminController::class, 'removeSuper'])->name('superadmin.removeSuper');
+});
+
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::get('/admin', [AdminStatsController::class, 'dashboard'])->name('admin.dashboard');
-    Route::get('/admin/stats.json', [AdminStatsApiController::class, 'index'])->name('admin.stats.json');
     Route::get('/admin/stats.json', [AdminStatsApiController::class, 'index'])->name('admin.stats.json');
     Route::get('/admin/geo/points', [AdminGeoApiController::class, 'points'])->name('admin.geo.points');
     Route::get('/admin/geo/latest', [AdminGeoApiController::class, 'latest'])->name('admin.geo.latest');
@@ -22,6 +31,7 @@ Route::middleware(['auth', 'verified', 'admin'])->group(function () {
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
+
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard/Dashboard');
 })->name('dashboard');
@@ -47,8 +57,6 @@ Route::get('/s/{slug}', [ShareLinkController::class, 'show'])->name('share.show'
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/share-links', [ShareLinkController::class, 'store'])->name('share.store');
 });
-
-use App\Http\Controllers\Auth\SocialAuthController;
 
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
     ->whereIn('provider', ['google', 'github'])

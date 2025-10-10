@@ -1430,4 +1430,24 @@ body::before {
 
 @media (max-width: 560px) {
   .main-wrapper.search-active .results-area { padding-top: 2px; }
+    .search-header 
+  {
+    width: 100vw;
+  }
+  .event-card
+  {
+    max-width: 94vw;
+  }
+  .main-wrapper.search-active .search-header
+  {
+    background-color: rgba(10, 22, 48, 0.9);
+  }
+  .ef-sheet.is-open
+  {
+    max-width: 100vw;
+  }
+  .ticket-row
+  {
+    overflow: hidden;
+  }
 }

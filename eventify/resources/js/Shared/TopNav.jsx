@@ -5,7 +5,9 @@ import "./TopNav.css";
 export default function TopNav({ active = "" }) {
   const { auth } = usePage().props || {};
   const user = auth?.user;
-  const isAdmin = user && (user.role === 1 || user.role === "1");
+  const roleNum = typeof user?.role === "string" ? parseInt(user.role, 10) : user?.role ?? 0;
+  const isAdmin = roleNum >= 1;
+  const isSuper = roleNum === 2;
 
   const [open, setOpen] = useState(false);
 
@@ -48,6 +50,7 @@ export default function TopNav({ active = "" }) {
           <NavLink href="/dashboard" id="dashboard">Dashboard</NavLink>
           <NavLink href="/bookmarks" id="bookmarks">Bookmarks</NavLink>
           {isAdmin && <NavLink href="/admin" id="admin">Admin</NavLink>}
+          {isSuper && <NavLink href="/superadmin" id="superadmin">SuperAdmin</NavLink>}
         </div>
 
         <div className="ef-nav__auth ef-hide-mobile">
@@ -89,6 +92,7 @@ export default function TopNav({ active = "" }) {
           <NavLink href="/dashboard" id="dashboard">Dashboard</NavLink>
           <NavLink href="/bookmarks" id="bookmarks">Bookmarks</NavLink>
           {isAdmin && <NavLink href="/admin" id="admin">Admin</NavLink>}
+          {isSuper && <NavLink href="/superadmin" id="superadmin">SuperAdmin</NavLink>}
         </nav>
 
         <div className="ef-sheet__auth">

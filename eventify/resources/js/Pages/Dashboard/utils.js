@@ -1,3 +1,4 @@
+// utils.js
 import axios from 'axios';
 
 export const DEFAULT_GL = 'uk';
@@ -37,6 +38,15 @@ export function parseWhenToISO(s){
   return '';
 }
 
+const STATE_PROVINCE_TO_COUNTRY = {
+  AL:'US',AK:'US',AZ:'US',AR:'US',CA:'US',CO:'US',CT:'US',DE:'US',FL:'US',GA:'US',
+  HI:'US',ID:'US',IL:'US',IN:'US',IA:'US',KS:'US',KY:'US',LA:'US',ME:'US',MD:'US',
+  MA:'US',MI:'US',MN:'US',MS:'US',MO:'US',MT:'US',NE:'US',NV:'US',NH:'US',NJ:'US',
+  NM:'US',NY:'US',NC:'US',ND:'US',OH:'US',OK:'US',OR:'US',PA:'US',RI:'US',SC:'US',
+  SD:'US',TN:'US',TX:'US',UT:'US',VT:'US',VA:'US',WA:'US',WV:'US',WI:'US',WY:'US',DC:'US',
+  AB:'CA',BC:'CA',MB:'CA',NB:'CA',NL:'CA',NS:'CA',NT:'CA',NU:'CA',ON:'CA',PE:'CA',QC:'CA',SK:'CA',YT:'CA'
+};
+
 export function getCityFromAddress(addr){
   if(!Array.isArray(addr)||!addr.length)return'';
   const last=String(addr[addr.length-1]||'').trim();
@@ -46,7 +56,15 @@ export function getCityFromAddress(addr){
   const city=parts[0];
   const tail=parts[parts.length-1]||'';
   const prev=parts[parts.length-2]||'';
-  const iso2=/^[A-Z]{2}$/.test(tail)?tail:/^[A-Z]{2}$/.test(prev)?prev:'';
+  let iso2='';
+  if(/^[A-Z]{2}$/.test(tail)) iso2=STATE_PROVINCE_TO_COUNTRY[tail]||'';
+  if(!iso2&&/^[A-Z]{2}$/.test(prev)) iso2=STATE_PROVINCE_TO_COUNTRY[prev]||'';
+  if(!iso2&&/^[A-Za-z\s\.]+$/.test(tail)){
+    const m=tail.toLowerCase();
+    if(['united kingdom','uk','great britain','britain','england'].includes(m)) iso2='GB';
+    else if(['united states','usa','america','united states of america','us'].includes(m)) iso2='US';
+    else if(['canada','ca'].includes(m)) iso2='CA';
+  }
   return iso2?`${city}, ${iso2}`:city;
 }
 
@@ -154,12 +172,14 @@ export function suggestTripTitle(evt,arrivalId){
   const hints=[];if(arrivalId)hints.push(arrivalId);if(date)hints.push(date);
   return hints.length?`${base} (${hints.join(' · ')})`:base;
 }
+
 export async function guessOriginIata(defaultIata='RIX'){
   try{
     const k='ef.originIata'; const c=sessionStorage.getItem(k); if(c) return c;
     const loc=await requestBrowserLocation(); const val=loc?'':defaultIata; sessionStorage.setItem(k,val||defaultIata); return val||defaultIata;
   }catch{ return defaultIata; }
 }
+
 export function inferCurrencySymbol(data){
   const url=data?.requestMetadata?.url||'';
   const curr=(url.match(/curr=([A-Z]{3})/)?.[1])||'EUR';

@@ -32,7 +32,6 @@ export default function Login({ status, canResetPassword }) {
             <p className="auth-sub">Sign in to continue to Eventify</p>
           </div>
 
-          {/* ——— Social providers (compact) ——— */}
           <div className="social-auth compact">
             <a className="provider-btn google" href="/auth/google/redirect" aria-label="Continue with Google">
               <span className="pv-icon" aria-hidden="true">
@@ -54,7 +53,6 @@ export default function Login({ status, canResetPassword }) {
 
             <div className="pv-divider"><span>or continue with email</span></div>
           </div>
-          {/* ——— /Social providers ——— */}
 
           {status && (
             <div className="auth-status" role="status">
@@ -95,14 +93,6 @@ export default function Login({ status, canResetPassword }) {
             </div>
 
             <div className="row mt-4">
-              <label className="remember">
-                <Checkbox
-                  name="remember"
-                  checked={data.remember}
-                  onChange={(e) => setData('remember', e.target.checked)}
-                />
-                <span>Remember me</span>
-              </label>
 
               {/* {canResetPassword && (
                 <Link href={route('password.request')} className="auth-link">

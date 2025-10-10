@@ -287,7 +287,7 @@
   .ef-show-mobile { display: inline-flex; }
 }
 
-/* Burger */
+
 .ef-burger {
   appearance: none;
   border: 0;
@@ -312,7 +312,7 @@
 .ef-burger.is-active .ef-burger__bar:nth-child(2){ opacity: 0; }
 .ef-burger.is-active .ef-burger__bar:nth-child(3){ transform: translateY(-6px) rotate(-45deg); }
 
-/* Top sheet: compact, gentle */
+
 .ef-sheet {
   position: fixed;
   top: var(--ef-nav-h);
@@ -388,4 +388,17 @@
 @media (min-width: 861px) {
   .ef-sheet { display: none !important; }
   .ef-burger { display: none !important; }
+}
+
+@media (max-width: 860px) {
+ 
+  .ef-nav__inner {
+    grid-template-columns: auto 1fr auto;
+  }
+
+ 
+  .ef-burger {
+    grid-column: 3;
+    justify-self: end;  
+  }
 }
