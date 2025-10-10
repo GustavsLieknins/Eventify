@@ -45,3 +45,16 @@ How to run this project (terminal):
 And done!
 
 For now this project only works for bigger cities, like London, New York, Krakow and others (this is specificaly for flights search).
+
+<h2>Login info</h2>
+<h3>Regular User: </h3>
+Email: <code>user@user.com</code>
+Password: <code>user123</code>
+</br>
+<h3>Site Admin: </h3>
+Email: <code>admin@admin.com</code>
+Password: <code>adminadmin</code>
+</br>
+<h3>Super Admin: </h3>
+Email: <code>superadmin@superadmin.com</code>
+Password: <code>superadmin</code>
