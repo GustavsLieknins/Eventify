@@ -1311,3 +1311,123 @@ body::before {
   0% { background-position: 0% 0; }
   100% { background-position: 200% 0; }
 }
+
+
+@media (max-width: 520px) {
+  .results-area { padding: 0 12px 44px; }
+  .event-card, .card { padding: 12px; }
+  .timing { gap: 8px; }
+  .btn.small { padding: 7px 9px; }
+}
+
+
+@media (max-width: 520px) {
+  .input-group {
+    grid-template-columns: 1fr;
+  }
+  .input-search { border-radius: 10px; }
+  .input-when { border-radius: 10px; margin-top: 6px; }
+}
+
+
+
+
+@supports (padding: max(0px)) {
+  .main-wrapper { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+  .search-header { padding-top: max(var(--header-pad), env(safe-area-inset-top)); }
+}
+
+
+@media (max-width: 560px) {
+  :root {
+    --page-pad-x: 12px;
+    --content-max: 720px;
+    --title-size: 34px;
+    --title-tight: 28px;
+  }
+
+  .search-inner { gap: 10px; }
+  .actions-wrapper { gap: 8px; }
+
+ 
+  .actions-buttons {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .actions-buttons .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
+
+ 
+  .input-search,
+  .input-when {
+    padding: 13px 14px;
+    font-size: 16px;
+  }
+
+ 
+  .event-card,
+  .card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+ 
+  .timing {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+ 
+  .actions-row {
+    gap: 6px;
+  }
+  .actions-row .btn.small {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 40px;
+  }
+
+ 
+  .modal-backdrop { padding: 0; }
+  .modal {
+    width: 100vw;
+    max-height: 96svh;
+    height: auto;
+    border-radius: 14px 14px 0 0;
+    padding: 14px 12px 16px;
+  }
+  .modal-close { top: 10px; right: 10px; }
+  .modal-header { margin-bottom: 10px; padding-bottom: 8px; }
+}
+
+
+@media (max-width: 380px) {
+  .app-name-title { font-size: clamp(22px, 8.5vw, 28px); }
+  .actions-row .btn.small { flex: 1 1 100%; }
+  .badge, .chip { font-size: 11px; }
+}
+
+
+@media (max-width: 640px) {
+  .chip-row, .meta-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .chip-row::-webkit-scrollbar,
+  .meta-row::-webkit-scrollbar { display: none; }
+}
+
+
+@media (max-width: 640px) {
+  .suggest-grid { grid-template-columns: 1fr; gap: 12px; }
+  .suggest-card { padding: 14px; border-radius: 12px; }
+  .chip-row.big .chip { min-height: 40px; }
+}
+
+
+@media (max-width: 560px) {
+  .main-wrapper.search-active .results-area { padding-top: 2px; }
+}
