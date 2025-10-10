@@ -9,6 +9,7 @@ export default function PrimaryButton({ className = '', disabled, children, ...p
         className
       }
       disabled={disabled}
+      name="submit"
     >
       {children}
     </button>
