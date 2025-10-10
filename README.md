@@ -24,7 +24,7 @@ How to run this project (terminal):
 
 9. Open up any IDE of your choice and copy .env.example and paste it back in the same location as .env
 
-10. Then in the same terminal that you did the composer i type this in - php artisan migrate
+10. Then in the same terminal that you did the composer i type this in - php artisan migrate --seed
 
 11. Then click continue
 
@@ -43,3 +43,18 @@ How to run this project (terminal):
 14.1. php artisan serve
 
 And done!
+
+For now this project only works for bigger cities, like London, New York, Krakow and others (this is specificaly for flights search).
+
+<h2>Login info</h2>
+<h3>Regular User: </h3>
+Email: <code>user@user.com</code>
+Password: <code>user123</code>
+</br>
+<h3>Site Admin: </h3>
+Email: <code>admin@admin.com</code>
+Password: <code>adminadmin</code>
+</br>
+<h3>Super Admin: </h3>
+Email: <code>superadmin@superadmin.com</code>
+Password: <code>superadmin</code>
