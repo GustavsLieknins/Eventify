@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\api\EventController;
 use App\Http\Controllers\api\GeoController;
-use App\Http\Controllers\Api\TelemetryController;
+use App\Http\Controllers\api\TelemetryController;
 use App\Http\Controllers\api\TravelController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
