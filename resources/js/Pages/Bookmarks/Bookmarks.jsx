@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePage } from '@inertiajs/react';
 import './Bookmarks.css';
 import TopNav from '@/Shared/TopNav';
 
 import Icon from './Components/Ui/Icon';
 import Button from './Components/Ui/Button';
-// import Badge from './components/ui/Badge';
 import Card from './Components/Ui/Card';
 import Section from './Components/Ui/Section';
 import Empty from './Components/Ui/Empty';
@@ -17,9 +16,38 @@ import HotelList from './Components/HotelList';
 import useVisitBeacon from '@/Shared/useVisitBeacon';
 import TripGlobeArcCDN from './Components/TripGlobeArcCDN';
 
-
-
 const RELAY_KEY = 'toastRelay';
+
+async function smartShare({ url, title = 'Share link', text = '' }) {
+  if (navigator.share && /^https?:\/\//i.test(url)) {
+    try {
+      await navigator.share({ url, title, text });
+      return { ok: true, method: 'share' };
+    } catch {
+    }
+  }
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(url);
+      return { ok: true, method: 'clipboard' };
+    } catch {
+    }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return { ok: true, method: 'execCommand' };
+  } catch {
+    return { ok: false, method: 'none' };
+  }
+}
 
 export default function Bookmarks({ trips: initialTrips, user }) {
   useVisitBeacon();
@@ -168,11 +196,17 @@ export default function Bookmarks({ trips: initialTrips, user }) {
         credentials: 'same-origin',
       });
       if (!res.ok) throw new Error('Failed to create link');
+
       const data = await res.json();
       const url = data?.url;
       if (!url) throw new Error('Invalid response');
-      await navigator.clipboard.writeText(url);
-      toast('Share link copied!', 'ok');
+
+      const result = await smartShare({ url, title: 'Eventify trip' });
+      if (result.ok) {
+        toast(result.method === 'share' ? 'Share sheet opened' : 'Link copied!', 'ok');
+      } else {
+        toast('Copy this link: ' + url, 'ok', 8000);
+      }
     } catch {
       toast('Could not create link', 'error');
     }
@@ -233,10 +267,11 @@ export default function Bookmarks({ trips: initialTrips, user }) {
                   </div>
 
                   <div className="trip__actions" onClick={(e) => e.stopPropagation()}>
-                    <Button size="sm" variant="accent" onClick={() => onOpenTrip(trip)}>View</Button>
+                    <Button size="sm" variant="accent" type="button" onClick={() => onOpenTrip(trip)}>View</Button>
                     <Button
                       size="sm"
                       variant="glass"
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); createShareLink(trip.id); }}
                       title="Create shareable link"
                       iconLeft={<Icon name="link" />}
@@ -246,6 +281,7 @@ export default function Bookmarks({ trips: initialTrips, user }) {
                     <Button
                       size="sm"
                       variant="danger"
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); requestDelete(trip); }}
                       disabled={deleting === trip.id}
                       iconLeft={<Icon name="trash" />}
@@ -276,7 +312,6 @@ export default function Bookmarks({ trips: initialTrips, user }) {
               </div>
 
               <div className="modal__scroll">
-                
                 <TripGlobeArcCDN trip={selectedTrip} />
                 <TripMapPane
                   trip={selectedTrip}
