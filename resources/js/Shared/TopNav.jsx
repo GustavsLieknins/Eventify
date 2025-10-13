@@ -85,7 +85,7 @@ export default function TopNav({ active = "" }) {
       <div className={`ef-sheet ${open ? "is-open" : ""}`} role="dialog" aria-modal="true">
         <div className="ef-sheet__head">
           <span className="ef-sheet__title">Menu</span>
-          <button className="ef-sheet__close" aria-label="Close" onClick={() => setOpen(false)}>×</button>
+          
         </div>
 
         <nav className="ef-sheet__links" aria-label="Mobile">
