@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
-import Card from './ui/Card';
-import Badge from './ui/Badge';
-import Button from './ui/Button';
-import Icon from './ui/Icon';
-import Empty from './ui/Empty';
+import Card from './Ui/Card';
+import Badge from './Ui/Badge';
+import Button from './Ui/Button';
+import Icon from './Ui/Icon';
+import Empty from './Ui/Empty';
 
 export default memo(function FlightList({ flights, buildFlightsLink, fmtPrice, fmtDuration }) {
   if (!flights?.length) return <Empty title="No flights saved" />;

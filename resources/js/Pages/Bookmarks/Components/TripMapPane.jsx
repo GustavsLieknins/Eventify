@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import Icon from './ui/Icon';
+import Icon from './Ui/Icon';
 
 export default memo(function TripMapPane({ trip, buildTripEmbedUrl, buildTripExternalUrl }) {
   const url = buildTripEmbedUrl(trip);

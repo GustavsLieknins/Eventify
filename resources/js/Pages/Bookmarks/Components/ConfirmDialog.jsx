@@ -1,6 +1,6 @@
 import React from 'react';
-import Icon from './ui/Icon';
-import Button from './ui/Button';
+import Icon from './Ui/Icon';
+import Button from './Ui/Button';
 
 export default function ConfirmDialog({ open, title, message, onConfirm, onCancel, busy }) {
   if (!open) return null;

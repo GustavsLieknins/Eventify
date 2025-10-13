@@ -3,12 +3,12 @@ import { usePage } from '@inertiajs/react';
 import './Bookmarks.css';
 import TopNav from '@/Shared/TopNav';
 
-import Icon from './components/ui/Icon';
-import Button from './components/ui/Button';
+import Icon from './Components/Ui/Icon';
+import Button from './Components/Ui/Button';
 // import Badge from './components/ui/Badge';
-import Card from './components/ui/Card';
-import Section from './components/ui/Section';
-import Empty from './components/ui/Empty';
+import Card from './Components/Ui/Card';
+import Section from './Components/Ui/Section';
+import Empty from './Components/Ui/Empty';
 
 import ConfirmDialog from './components/ConfirmDialog';
 import TripMapPane from './components/TripMapPane';
