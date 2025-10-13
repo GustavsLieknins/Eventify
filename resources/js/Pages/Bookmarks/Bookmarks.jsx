@@ -10,12 +10,12 @@ import Card from './Components/Ui/Card';
 import Section from './Components/Ui/Section';
 import Empty from './Components/Ui/Empty';
 
-import ConfirmDialog from './components/ConfirmDialog';
-import TripMapPane from './components/TripMapPane';
-import FlightList from './components/FlightList';
-import HotelList from './components/HotelList';
+import ConfirmDialog from './Components/ConfirmDialog';
+import TripMapPane from './Components/TripMapPane';
+import FlightList from './Components/FlightList';
+import HotelList from './Components/HotelList';
 import useVisitBeacon from '@/Shared/useVisitBeacon';
-import TripGlobeArcCDN from './components/TripGlobeArcCDN';
+import TripGlobeArcCDN from './Components/TripGlobeArcCDN';
 
 
 

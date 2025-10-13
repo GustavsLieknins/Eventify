@@ -3,10 +3,10 @@ import axios from 'axios';
 import './Dashboard.css';
 import TopNav from '@/Shared/TopNav';
 import { router, usePage } from '@inertiajs/react';
-import Toasts from './components/Toasts';
-import SearchHeader from './components/SearchHeader';
-import EventCard from './components/EventCard';
-import TravelModal from './components/TravelModal';
+import Toasts from './Components/Toasts';
+import SearchHeader from './Components/SearchHeader';
+import EventCard from './Components/EventCard';
+import TravelModal from './Components/TravelModal';
 import useVisitBeacon from '@/Shared/useVisitBeacon';
 import geo from '@/data/geo.json';
 import {
