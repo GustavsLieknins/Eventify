@@ -22,31 +22,23 @@ class HasDataClient
         return Http::withHeaders([
             'Content-Type' => 'application/json',
             'x-api-key' => $this->apiKey,
-            'User-Agent' => 'Eventify/1.0 (+server-cache)',
+            // dropped "+server-cache" tag to reflect no caching
+            'User-Agent' => 'Eventify/1.0',
         ])->baseUrl($this->baseUrl);
     }
 
     public function events(array $params)
     {
-        return $this->client()
-            ->get($this->endpoints['events'], $params)
-            ->throw()
-            ->json();
+        return $this->client()->get($this->endpoints['events'], $params)->throw()->json();
     }
 
     public function flights(array $params)
     {
-        return $this->client()
-            ->get($this->endpoints['flights'], $params)
-            ->throw()
-            ->json();
+        return $this->client()->get($this->endpoints['flights'], $params)->throw()->json();
     }
 
     public function mapsSearch(array $params)
     {
-        return $this->client()
-            ->get($this->endpoints['maps_search'], $params)
-            ->throw()
-            ->json();
+        return $this->client()->get($this->endpoints['maps_search'], $params)->throw()->json();
     }
 }

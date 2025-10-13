@@ -55,7 +55,7 @@ export default function TravelModal({
               style={{ borderRadius: 10, minWidth: 240, background: '#fff' }}
               placeholder="Trip name"
               value={tripTitle}
-              onChange={(e) => setTripTitle(e.target.value)}
+              onChange={(e) => setTripTitle?.(e.target.value)}
             />
             <form onSubmit={handleSave}>
               <PrimaryButton disabled={saving} style={{ marginLeft: 8 }}>
@@ -111,5 +111,5 @@ export default function TravelModal({
         </div>
       </div>
     </div>
-  );
+  ); 
 }

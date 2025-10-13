@@ -3,13 +3,10 @@
 namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\RefreshEventsSearch;
-use App\Models\CachedSearch;
+use App\Models\SearchLog;
 use App\Services\HasDataClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Response;
 
 class EventController extends Controller
 {
@@ -32,105 +29,42 @@ class EventController extends Controller
         }
 
         $normalized = $this->normalizeParams($params);
-        $keyHash = hash('sha256', json_encode($normalized));
 
-        $cache = CachedSearch::where('key_hash', $keyHash)->first();
-
-        DB::table('search_logs')->insert([
+        // simple search log (kept)
+        SearchLog::query()->create([
             'user_id' => optional($request->user())->id,
             'query' => $q,
             'ip' => $request->ip(),
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
-
-        if ($cache) {
-            $payload = $cache->payload_json ? json_decode($cache->payload_json, true) : [];
-
-            $refreshing = false;
-            $xCache = 'HIT';
-            if ($cache->isSoftStale() || !$cache->isFresh()) {
-                $refreshing = true;
-                $xCache = $cache->isFresh() ? 'STALE' : 'EXPIRED';
-                RefreshEventsSearch::dispatch($normalized, $keyHash, 10, 1440);
-            }
-
-            if ($cache->etag && $cache->isFresh()) {
-                $clientEtags = array_map('trim', explode(',', (string) $request->headers->get('If-None-Match', '')));
-                if (in_array($cache->etag, $clientEtags, true)) {
-                    return Response::make('', 304, [
-                        'ETag' => $cache->etag,
-                        'X-Cache' => $xCache,
-                        'Cache-Control' => 'public, max-age=300',
-                    ]);
-                }
-            }
-
-            $merged = $this->mergeMeta($payload, [
-                'from_cache' => true,
-                'refreshing' => $refreshing,
-                'status' => $cache->status,
-                'fetched_at' => optional($cache->fetched_at)->toIso8601String(),
-            ]);
-
-            return response()
-                ->json($merged)
-                ->withHeaders([
-                    'ETag' => $cache->etag ?? CachedSearch::makeEtagFromPayload($payload),
-                    'X-Cache' => $xCache,
-                    'Cache-Control' => 'public, max-age=300',
-                ]);
-        }
 
         try {
             $live = $hasData->events($normalized);
 
-            $row = CachedSearch::firstOrNew(['key_hash' => $keyHash]);
-            $row->params_json = $normalized;
-            $row->payload_json = json_encode($live);
-            $row->etag = CachedSearch::makeEtagFromPayload($live);
-            $row->status = 'fresh';
-            $row->markFresh(10, 1440);
-            $row->save();
+            // make sure response shape is predictable
+            if (empty($live)) {
+                $live = ['eventsResults' => [], 'results' => [], 'items' => []];
+            }
 
-            $merged = $this->mergeMeta($live, [
+            $live['_meta'] = [
                 'from_cache' => false,
                 'refreshing' => false,
-                'status' => 'fresh',
-                'fetched_at' => optional($row->fetched_at)->toIso8601String(),
-            ]);
+                'status' => 'live',
+                'fetched_at' => now()->toIso8601String(),
+            ];
 
-            return response()
-                ->json($merged)
-                ->withHeaders([
-                    'ETag' => $row->etag,
-                    'X-Cache' => 'MISS',
-                    'Cache-Control' => 'public, max-age=300',
-                ]);
+            return response()->json($live);
         } catch (\Throwable $e) {
-            CachedSearch::updateOrCreate(
-                ['key_hash' => $keyHash],
-                ['params_json' => $normalized, 'status' => 'pending', 'error_text' => $e->getMessage()]
-            );
-            RefreshEventsSearch::dispatch($normalized, $keyHash, 10, 1440);
-
-            return response()
-                ->json([
-                    'eventsResults' => [],
-                    'results' => [],
-                    'items' => [],
-                    '_meta' => [
-                        'from_cache' => false,
-                        'refreshing' => true,
-                        'status' => 'pending',
-                        'fetched_at' => null,
-                        'error' => config('app.debug') ? $e->getMessage() : null,
-                    ],
-                ])
-                ->withHeaders([
-                    'X-Cache' => 'MISS-PENDING',
-                    'Cache-Control' => 'no-store',
-                ]);
+            return response()->json([
+                'eventsResults' => [],
+                'results' => [],
+                'items' => [],
+                '_meta' => [
+                    'from_cache' => false,
+                    'refreshing' => false,
+                    'status' => 'error',
+                    'error' => config('app.debug') ? $e->getMessage() : 'Search failed',
+                ],
+            ], 500);
         }
     }
 
@@ -150,15 +84,5 @@ class EventController extends Controller
         $gl = strtolower($gl);
 
         return in_array($gl, ['uk', 'gb'], true) ? 'gb' : $gl;
-    }
-
-    private function mergeMeta(array $payload, array $meta): array
-    {
-        if (empty($payload)) {
-            $payload = ['eventsResults' => [], 'results' => [], 'items' => []];
-        }
-        $payload['_meta'] = $meta;
-
-        return $payload;
     }
 }

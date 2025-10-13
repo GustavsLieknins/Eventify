@@ -17,9 +17,6 @@ import {
 } from './utils';
 
 const uid = () => Math.random().toString(36).slice(2, 9);
-const searchCache = new Map();
-const cacheKey = (q, when, loc) => `${q}|||${when || ''}|||${loc || ''}`;
-const CACHE_TTL_MS = 1000 * 60 * 60;
 
 export default function Dashboard() {
   useVisitBeacon();
@@ -27,44 +24,47 @@ export default function Dashboard() {
   const { auth } = usePage().props;
   const userId = auth?.user?.id ?? null;
 
-  const [q, setQ] = useState('');
-  const [location, setLocation] = useState('');
-  const [when, setWhen] = useState('');
+  // search controls
+  const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [whenFilter, setWhenFilter] = useState('');
   const [originIata, setOriginIata] = useState('RIX');
 
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTriggered, setSearchTriggered] = useState(false);
-  const [lastQuery, setLastQuery] = useState('');
-  const [pageStart, setPageStart] = useState(0);
+  // search results + ui
+  const [eventResults, setEventResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [lastSearchTerm, setLastSearchTerm] = useState('');
+  const [resultStart, setResultStart] = useState(0);
 
-  const [selected, setSelected] = useState(null);
-  const [showTravel, setShowTravel] = useState(false);
-  const [flights, setFlights] = useState(null);
-  const [hotels, setHotels] = useState([]);
-  const [usedArrival, setUsedArrival] = useState('');
+  // modal + selections
+  const [activeEvent, setActiveEvent] = useState(null);
+  const [isTravelOpen, setIsTravelOpen] = useState(false);
+  const [flightResponse, setFlightResponse] = useState(null);
+  const [hotelResults, setHotelResults] = useState([]);
+  const [resolvedArrivalIata, setResolvedArrivalIata] = useState('');
   const [arrivalOverride, setArrivalOverride] = useState('');
   const [outboundDate, setOutboundDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
-  const [selectedFlight, setSelectedFlight] = useState(null);
-  const [selectedHotel, setSelectedHotel] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [selectedFlightIndex, setSelectedFlightIndex] = useState(null);
+  const [selectedHotelIndex, setSelectedHotelIndex] = useState(null);
+  const [isSavingTrip, setIsSavingTrip] = useState(false);
 
-  const [flightsLoading, setFlightsLoading] = useState(false);
-  const [hotelsLoading, setHotelsLoading] = useState(false);
+  const [isFlightsLoading, setIsFlightsLoading] = useState(false);
+  const [isHotelsLoading, setIsHotelsLoading] = useState(false);
 
-  const reqIdRef = useRef(0);
+  const requestIdRef = useRef(0);
   const modalRef = useRef(null);
 
   const [toasts, setToasts] = useState([]);
-  const toast = ({ title, message = '', tone = 'info', ttl = 3800 }) => {
+  const pushToast = ({ title, message = '', tone = 'info', ttl = 3800 }) => {
     const id = uid();
     setToasts(t => [...t, { id, title, message, tone, ttl }]);
     window.setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), ttl + 250);
   };
   const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
 
-  const showLanding = !loading && events.length === 0 && !searchTriggered && !lastQuery;
+  const showLanding = !isSearching && eventResults.length === 0 && !hasSearched && !lastSearchTerm;
 
   const ninjasKey = import.meta.env.VITE_NINJAS_KEY || '';
 
@@ -100,7 +100,7 @@ export default function Dashboard() {
 
   const normalizeCityKey = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
-  const parseCityIso = (label) => {
+  const parseCityIsoFromLabel = (label) => {
     const parts = (label || '').split(',').map(s => s.trim()).filter(Boolean);
     const city = parts[0] || '';
     const tail = parts[parts.length - 1] || '';
@@ -112,8 +112,8 @@ export default function Dashboard() {
     return { city, iso };
   };
 
-  const resolveCityToIataListNinjas = async (cityLabel) => {
-    const { city, iso } = parseCityIso(cityLabel);
+  const resolveCityToIataList = async (cityLabel) => {
+    const { city, iso } = parseCityIsoFromLabel(cityLabel);
     const key = normalizeCityKey(city);
     if (!city) return ['LHR'];
     if (geo.basicIata[key]) return geo.basicIata[key];
@@ -150,15 +150,15 @@ export default function Dashboard() {
   };
 
   const resetSearchUI = () => {
-    setEvents([]);
-    setPageStart(0);
-    setSelected(null);
-    setFlights(null);
-    setHotels([]);
-    setShowTravel(false);
-    setUsedArrival('');
-    setSelectedFlight(null);
-    setSelectedHotel(null);
+    setEventResults([]);
+    setResultStart(0);
+    setActiveEvent(null);
+    setFlightResponse(null);
+    setHotelResults([]);
+    setIsTravelOpen(false);
+    setResolvedArrivalIata('');
+    setSelectedFlightIndex(null);
+    setSelectedHotelIndex(null);
   };
 
   useEffect(() => {
@@ -171,58 +171,53 @@ export default function Dashboard() {
   }, []);
 
   const searchEvents = async (reset = true, overrides = {}) => {
-    const qVal = ((overrides.q ?? q) || '').trim();
-    const whenVal = overrides.when ?? when;
-    const locVal = overrides.location ?? (location || DEFAULT_EVENT_LOCATION);
-    const startVal = reset ? 0 : pageStart;
+    const term = ((overrides.searchTerm ?? searchTerm) || '').trim();
+    const whenVal = overrides.whenFilter ?? whenFilter;
+    const locVal = overrides.locationFilter ?? (locationFilter || DEFAULT_EVENT_LOCATION);
+    const startVal = reset ? 0 : resultStart;
 
-    if (!qVal) { toast({ title: 'Type something to search', tone: 'warn' }); return; }
-
-    const key = cacheKey(qVal, whenVal, locVal);
-    setLastQuery(qVal);
-    setSearchTriggered(true);
-
-    if (reset) {
-      const cached = searchCache.get(key);
-      const fresh = cached && (Date.now() - cached.ts) < CACHE_TTL_MS;
-      setEvents(fresh && Array.isArray(cached.items) ? cached.items : []);
-      resetSearchUI();
+    if (!term) {
+      pushToast({ title: 'Type something to search', tone: 'warn' });
+      return;
     }
 
-    const myReq = ++reqIdRef.current;
-    setLoading(true);
+    setLastSearchTerm(term);
+    setHasSearched(true);
+    if (reset) resetSearchUI();
+
+    const myReq = ++requestIdRef.current;
+    setIsSearching(true);
 
     try {
       const { data } = await axios.get('/api/events', {
-        params: { q: qVal, location: locVal, when: whenVal, gl: DEFAULT_GL, hl: DEFAULT_HL, start: startVal },
+        params: { q: term, location: locVal, when: whenVal, gl: DEFAULT_GL, hl: DEFAULT_HL, start: startVal },
       });
-      if (myReq !== reqIdRef.current) return;
-
+      if (myReq !== requestIdRef.current) return;
       const items = normalizeEvents(data);
-      setEvents(prev => (reset ? items : [...prev, ...items]));
-      if (reset) searchCache.set(key, { ts: Date.now(), items });
+      setEventResults(prev => (reset ? items : [...prev, ...items]));
     } catch (err) {
       const msg = err?.response?.data?.error || err?.message || 'Search failed';
-      toast({ title: msg, tone: 'error' });
+      pushToast({ title: msg, tone: 'error' });
     } finally {
-      if (myReq === reqIdRef.current) setLoading(false);
+      if (myReq === requestIdRef.current) setIsSearching(false);
     }
   };
 
   const runQuickSearch = async (term = '', whenVal = '', city = '') => {
     const loc = city ? `${city}, ${DEFAULT_EVENT_LOCATION}` : DEFAULT_EVENT_LOCATION;
-    setQ(term);
-    setWhen(whenVal || '');
-    setLocation(city ? loc : '');
-    await searchEvents(true, { q: term, when: whenVal || '', location: loc });
+    setSearchTerm(term);
+    setWhenFilter(whenVal || '');
+    setLocationFilter(city ? loc : '');
+    await searchEvents(true, { searchTerm: term, whenFilter: whenVal || '', locationFilter: loc });
   };
 
+  // modal show/hide
   useEffect(() => {
-    if (!showTravel) return;
+    if (!isTravelOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.body.classList.add('modal-open');
-    const onKey = (e) => { if (e.key === 'Escape') setShowTravel(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setIsTravelOpen(false); };
     window.addEventListener('keydown', onKey);
     if (modalRef.current) modalRef.current.focus();
     return () => {
@@ -230,48 +225,51 @@ export default function Dashboard() {
       document.body.classList.remove('modal-open');
       window.removeEventListener('keydown', onKey);
     };
-  }, [showTravel]);
+  }, [isTravelOpen]);
 
   const loadMore = async () => {
-    setPageStart(p => p + 10);
+    setResultStart(p => p + 10);
     await searchEvents(false);
   };
 
-  const fetchFlightsWithFallbacks = async (from, arrivals, dOutISO, dRetISO, stayNights) => {
-    for (const arrivalId of arrivals) {
+  // flights helper with nearby arrivals
+  const fetchFlightsWithFallbacks = async (fromIata, arrivalIatas, departISO, returnISO, stayNights) => {
+    for (const arrivalId of arrivalIatas) {
       try {
         const r = await axios.get('/api/travel/flights', {
           params: {
-            from, fromId: from, origin: from,
-            arrivalId, to: arrivalId, toId: arrivalId, destination: arrivalId,
-            departDate: dOutISO, outboundDate: dOutISO,
-            inboundDate: dRetISO, returnDate: dRetISO,
+            from: fromIata,
+            arrivalId,
+            departDate: departISO,
+            outboundDate: departISO,
+            inboundDate: returnISO,
+            returnDate: returnISO,
             stayNights: Math.max(1, stayNights || 1),
           },
         });
         if (hasAnyFlights(r.data)) {
-          setFlights(r.data);
-          setUsedArrival(arrivalId);
-          if (arrivals[0] !== arrivalId) {
-            toast({ title: `Using nearby airport: ${arrivalId}`, tone: 'info' });
+          setFlightResponse(r.data);
+          setResolvedArrivalIata(arrivalId);
+          if (arrivalIatas[0] !== arrivalId) {
+            pushToast({ title: `Using nearby airport: ${arrivalId}`, tone: 'info' });
           }
           return true;
         }
       } catch {}
     }
-    setFlights({ error: 'No flights found for nearby airports' });
-    setUsedArrival(arrivals[0] || '');
+    setFlightResponse({ error: 'No flights found for nearby airports' });
+    setResolvedArrivalIata(arrivalIatas[0] || '');
     return false;
   };
 
-  const selectEvent = async (evt) => {
-    setSelected(evt);
-    setShowTravel(true);
-    setFlights(null);
-    setHotels([]);
-    setUsedArrival('');
-    setFlightsLoading(true);
-    setHotelsLoading(true);
+  const openEventTravel = async (evt) => {
+    setActiveEvent(evt);
+    setIsTravelOpen(true);
+    setFlightResponse(null);
+    setHotelResults([]);
+    setResolvedArrivalIata('');
+    setIsFlightsLoading(true);
+    setIsHotelsLoading(true);
 
     const dates = getEventTravelDates(evt);
     let outISO = dates.departISO;
@@ -291,87 +289,92 @@ export default function Dashboard() {
     const city = evt?.city || '';
     const venue = evt?.venue || '';
 
+    // hotels
     try {
       const res = await axios.get('/api/travel/hotels', {
         params: { q: venue ? `hotels near ${venue} ${city}` : `hotels in ${city}`, city, venue },
       });
       const h = res.data;
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
-      setHotels(Array.isArray(list) ? list : []);
-    } catch { setHotels([]); }
-    finally { setHotelsLoading(false); }
+      setHotelResults(Array.isArray(list) ? list : []);
+    } catch {
+      setHotelResults([]);
+    } finally {
+      setIsHotelsLoading(false);
+    }
 
-    const override = (arrivalOverride || '').trim().toUpperCase();
-    const candidates = override ? [override] : await resolveCityToIataListNinjas(city);
-    await fetchFlightsWithFallbacks(originIata || 'RIX', candidates, outISO, retISO, 1);
-    setFlightsLoading(false);
+    // flights
+    const manualArrival = (arrivalOverride || '').trim().toUpperCase();
+    const candidateArrivals = manualArrival ? [manualArrival] : await resolveCityToIataList(city);
+    await fetchFlightsWithFallbacks(originIata || 'RIX', candidateArrivals, outISO, retISO, 1);
+    setIsFlightsLoading(false);
   };
 
   const refreshFlights = async () => {
-    if (!selected) return;
-    const city = selected?.city || '';
-    const override = (arrivalOverride || '').trim().toUpperCase();
-    const candidates = override ? [override] : await resolveCityToIataListNinjas(city);
+    if (!activeEvent) return;
+    const city = activeEvent?.city || '';
+    const manualArrival = (arrivalOverride || '').trim().toUpperCase();
+    const candidateArrivals = manualArrival ? [manualArrival] : await resolveCityToIataList(city);
 
     let outISO = outboundDate, retISO = returnDate;
     if (!outISO || !retISO) {
-      const d = getEventTravelDates(selected);
+      const d = getEventTravelDates(activeEvent);
       outISO = d.departISO || outboundDate;
       retISO = d.returnISO || returnDate;
       setOutboundDate(outISO);
       setReturnDate(retISO);
     }
 
-    setFlightsLoading(true);
-    setFlights(null);
-    await fetchFlightsWithFallbacks(originIata || 'RIX', candidates, outISO, retISO, 1);
-    setFlightsLoading(false);
+    setIsFlightsLoading(true);
+    setFlightResponse(null);
+    await fetchFlightsWithFallbacks(originIata || 'RIX', candidateArrivals, outISO, retISO, 1);
+    setIsFlightsLoading(false);
   };
 
   const refreshHotels = async () => {
-    if (!selected) return;
-    const city = selected?.city || '';
-    const venue = selected?.venue || '';
-    setHotelsLoading(true);
+    if (!activeEvent) return;
+    const city = activeEvent?.city || '';
+    const venue = activeEvent?.venue || '';
+    setIsHotelsLoading(true);
     try {
       const r = await axios.get('/api/travel/hotels', {
         params: { q: venue ? `hotels near ${venue} ${city}` : `hotels in ${city}`, city, venue },
       });
       const h = r.data;
       const list = Array.isArray(h) ? h : (h?.localResults || h?.results || h?.places || h?.data || []);
-      setHotels(Array.isArray(list) ? list : []);
-    } catch { setHotels([]); }
-    finally { setHotelsLoading(false); }
+      setHotelResults(Array.isArray(list) ? list : []);
+    } catch { setHotelResults([]); }
+    finally { setIsHotelsLoading(false); }
   };
 
-  const handleSave = async (e) => {
+  const saveTrip = async (e) => {
     e.preventDefault();
-    if (!userId) { toast({ title: 'Please sign in first', tone: 'warn' }); return; }
+    if (!userId) { pushToast({ title: 'Please sign in first', tone: 'warn' }); return; }
 
-    const flightOptions = extractFlightOptions(flights).map(normalizeFlightOption).slice(0, 10);
-    const hotelOptions = (Array.isArray(hotels) ? hotels : []).map(normalizeHotel);
-    const ok = (i, arr) => Number.isInteger(i) && i >= 0 && i < arr.length;
+    const flightOptions = extractFlightOptions(flightResponse).map(normalizeFlightOption).slice(0, 10);
+    const hotelOptions = (Array.isArray(hotelResults) ? hotelResults : []).map(normalizeHotel);
+    const inRange = (i, arr) => Number.isInteger(i) && i >= 0 && i < arr.length;
 
-    const chosenFlight = ok(selectedFlight, flightOptions) ? flightOptions[selectedFlight] : null;
-    const chosenHotel = ok(selectedHotel, hotelOptions) ? hotelOptions[selectedHotel] : null;
+    const chosenFlight = inRange(selectedFlightIndex, flightOptions) ? flightOptions[selectedFlightIndex] : null;
+    const chosenHotel = inRange(selectedHotelIndex, hotelOptions) ? hotelOptions[selectedHotelIndex] : null;
 
-    if (!chosenFlight && !chosenHotel) { toast({ title: 'Select a flight or hotel first', tone: 'warn' }); return; }
+    if (!chosenFlight && !chosenHotel) { pushToast({ title: 'Select a flight or hotel first', tone: 'warn' }); return; }
 
     const payload = {
-      title: suggestTripTitle(selected, usedArrival) || 'My Trip',
+      title: suggestTripTitle(activeEvent, resolvedArrivalIata) || 'My Trip',
       flights: chosenFlight ? [chosenFlight] : [],
       hotels: chosenHotel ? [chosenHotel] : [],
       user_id: userId,
     };
 
-    setSaving(true);
+    setIsSavingTrip(true);
 
     try {
       const ttl = 4800;
       const notBefore = Date.now() + 800;
       sessionStorage.setItem('toastRelay', JSON.stringify({
         title: 'Trip saved!',
-        message: usedArrival ? `Arrival: ${usedArrival}` : '',
+        message: resolvedArrivalIata ? `Arrival: ${resolvedArrivalIata}` : '',
         tone: 'success',
         ttl,
         until: Date.now() + (ttl + 12000),
@@ -385,36 +388,36 @@ export default function Dashboard() {
       onSuccess: () => { router.visit('/bookmarks', { replace: true }); },
       onError: () => {
         try { sessionStorage.removeItem('toastRelay'); } catch {}
-        toast({ title: 'Failed to save trip', tone: 'error' });
+        pushToast({ title: 'Failed to save trip', tone: 'error' });
       },
-      onFinish: () => setSaving(false),
+      onFinish: () => setIsSavingTrip(false),
     });
   };
 
   return (
     <>
       <TopNav active="dashboard" />
-      <div className={`main-wrapper ${searchTriggered ? 'search-active' : ''} ${showLanding ? 'landing' : ''}`}>
+      <div className={`main-wrapper ${hasSearched ? 'search-active' : ''} ${showLanding ? 'landing' : ''}`}>
         <Toasts toasts={toasts} onDismiss={dismissToast} />
 
         <SearchHeader
-          q={q} setQ={setQ}
-          location={location} setLocation={setLocation}
-          when={when} setWhen={setWhen}
-          loading={loading}
+          q={searchTerm} setQ={setSearchTerm}
+          location={locationFilter} setLocation={setLocationFilter}
+          when={whenFilter} setWhen={setWhenFilter}
+          loading={isSearching}
           showSuggestions={showLanding}
           onSubmitSearch={(e, currentQ) => {
             e.preventDefault();
-            const liveQ = (currentQ ?? q ?? '').trim();
-            if (!liveQ) { toast({ title: 'Type something to search', tone: 'warn' }); return; }
-            setQ(liveQ);
-            searchEvents(true, { q: liveQ });
+            const liveQ = (currentQ ?? searchTerm ?? '').trim();
+            if (!liveQ) { pushToast({ title: 'Type something to search', tone: 'warn' }); return; }
+            setSearchTerm(liveQ);
+            searchEvents(true, { searchTerm: liveQ });
           }}
           onClear={() => {
-            setQ(''); setLocation(''); setWhen('');
+            setSearchTerm(''); setLocationFilter(''); setWhenFilter('');
             resetSearchUI();
-            setSearchTriggered(false);
-            setLastQuery('');
+            setHasSearched(false);
+            setLastSearchTerm('');
           }}
           runQuickSearch={runQuickSearch}
         />
@@ -422,7 +425,7 @@ export default function Dashboard() {
         <main className="results-area">
           {!showLanding && (
             <>
-              {loading && events.length === 0 && (
+              {isSearching && eventResults.length === 0 && (
                 <div className="cards-stack">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="event-card skeleton">
@@ -437,18 +440,18 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {!loading && events.length === 0 && (searchTriggered || !!lastQuery) && (
-                <div className="muted center">No events found{lastQuery ? ` for “${lastQuery}”` : ''}.</div>
+              {!isSearching && eventResults.length === 0 && (hasSearched || !!lastSearchTerm) && (
+                <div className="muted center">No events found{lastSearchTerm ? ` for “${lastSearchTerm}”` : ''}.</div>
               )}
 
-              {events?.map((evt, idx) => (
-                <EventCard key={idx} evt={evt} onSelect={() => selectEvent(evt)} />
+              {eventResults?.map((evt, idx) => (
+                <EventCard key={idx} evt={evt} onSelect={() => openEventTravel(evt)} />
               ))}
 
-              {events.length > 0 && (
+              {eventResults.length > 0 && (
                 <div className="load-more">
-                  <button disabled={loading} onClick={loadMore} className="btn">
-                    {loading ? 'Loading…' : 'Load more'}
+                  <button disabled={isSearching} onClick={loadMore} className="btn">
+                    {isSearching ? 'Loading…' : 'Load more'}
                   </button>
                 </div>
               )}
@@ -456,21 +459,21 @@ export default function Dashboard() {
           )}
         </main>
 
-        {showTravel && selected && (
+        {isTravelOpen && activeEvent && (
           <TravelModal
-            selected={selected}
-            flights={flights}
-            hotels={hotels}
-            selectedFlight={selectedFlight}
-            setSelectedFlight={setSelectedFlight}
-            selectedHotel={selectedHotel}
-            setSelectedHotel={setSelectedHotel}
-            saving={saving}
-            handleSave={handleSave}
-            onClose={() => setShowTravel(false)}
+            selected={activeEvent}
+            flights={flightResponse}
+            hotels={hotelResults}
+            selectedFlight={selectedFlightIndex}
+            setSelectedFlight={setSelectedFlightIndex}
+            selectedHotel={selectedHotelIndex}
+            setSelectedHotel={setSelectedHotelIndex}
+            saving={isSavingTrip}
+            handleSave={saveTrip}
+            onClose={() => setIsTravelOpen(false)}
             modalRef={modalRef}
-            flightsLoading={flightsLoading}
-            hotelsLoading={hotelsLoading}
+            flightsLoading={isFlightsLoading}
+            hotelsLoading={isHotelsLoading}
           />
         )}
       </div>
