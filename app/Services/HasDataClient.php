@@ -22,7 +22,6 @@ class HasDataClient
         return Http::withHeaders([
             'Content-Type' => 'application/json',
             'x-api-key' => $this->apiKey,
-            // dropped "+server-cache" tag to reflect no caching
             'User-Agent' => 'Eventify/1.0',
         ])->baseUrl($this->baseUrl);
     }

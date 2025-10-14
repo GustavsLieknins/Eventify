@@ -230,7 +230,6 @@ export default function Dashboard() {
     await searchEvents(false);
   };
 
-  // flights helper with nearby arrivals
   const fetchFlightsWithFallbacks = async (fromIata, arrivalIatas, departISO, returnISO, stayNights) => {
     for (const arrivalId of arrivalIatas) {
       try {
