@@ -1,0 +1,29 @@
+<?php
+
+use App\Models\User;
+
+test('lietotājs var pieslēgties', function () {
+    User::updateOrCreate(
+        ['email' => 'user@user.com'],
+        [
+            'name' => 'Regular User',
+            'email_verified_at' => now(),
+            'password' => Hash::make('user123'),
+            'role' => 0,
+            'remember_token' => Str::random(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]
+    );
+
+    $page = visit('/login');
+
+    $page->type('email', 'user@user.com');
+    $page->type('password', 'user123');
+
+    $page->click('submit');
+
+    $page = visit('/bookmarks');
+
+    $page->assertPathIs('/bookmarks');
+});

@@ -196,21 +196,25 @@ export default function Bookmarks({ trips: initialTrips, user }) {
         credentials: 'same-origin',
       });
       if (!res.ok) throw new Error('Failed to create link');
-
+  
       const data = await res.json();
-      const url = data?.url;
-      if (!url) throw new Error('Invalid response');
-
+  
+      const raw = data?.url;
+      if (!raw) throw new Error('Invalid response');
+      const url = new URL(raw, window.location.origin).toString();
+  
       const result = await smartShare({ url, title: 'Eventify trip' });
+  
       if (result.ok) {
         toast(result.method === 'share' ? 'Share sheet opened' : 'Link copied!', 'ok');
       } else {
         toast('Copy this link: ' + url, 'ok', 8000);
       }
-    } catch {
+    } catch (err) {
       toast('Could not create link', 'error');
     }
   }, [toast]);
+  
 
   useEffect(() => {
     if (!selectedTrip) return;
