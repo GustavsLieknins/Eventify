@@ -7,6 +7,7 @@ import Toasts from './Components/Toasts';
 import SearchHeader from './Components/SearchHeader';
 import EventCard from './Components/EventCard';
 import TravelModal from './Components/TravelModal';
+import EventCardSkeleton from './Components/EventCardSkeleton';
 import useVisitBeacon from '@/Shared/useVisitBeacon';
 import geo from '@/data/geo.json';
 import {
@@ -24,20 +25,17 @@ export default function Dashboard() {
   const { auth } = usePage().props;
   const userId = auth?.user?.id ?? null;
 
-  // search controls
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [whenFilter, setWhenFilter] = useState('');
   const [originIata, setOriginIata] = useState('RIX');
 
-  // search results + ui
   const [eventResults, setEventResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [lastSearchTerm, setLastSearchTerm] = useState('');
   const [resultStart, setResultStart] = useState(0);
 
-  // modal + selections
   const [activeEvent, setActiveEvent] = useState(null);
   const [isTravelOpen, setIsTravelOpen] = useState(false);
   const [flightResponse, setFlightResponse] = useState(null);
@@ -428,14 +426,7 @@ export default function Dashboard() {
               {isSearching && eventResults.length === 0 && (
                 <div className="cards-stack">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="event-card skeleton">
-                      <div className="skeleton-line title" />
-                      <div className="skeleton-line meta" />
-                      <div className="skeleton-actions">
-                        <div className="skeleton-chip" />
-                        <div className="skeleton-chip" />
-                      </div>
-                    </div>
+                    <EventCardSkeleton key={i} />
                   ))}
                 </div>
               )}
@@ -478,5 +469,5 @@ export default function Dashboard() {
         )}
       </div>
     </>
-  );
+  ); 
 }

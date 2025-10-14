@@ -1451,3 +1451,62 @@ body::before {
     overflow: hidden;
   }
 }
+
+
+
+
+
+.cards-stack {
+  display: grid;
+  gap: 12px;
+}
+
+
+.event-card.skeleton { position: relative; overflow: hidden; }
+
+.event-card.skeleton .skeleton-line,
+.event-card.skeleton .skeleton-chip {
+  background: rgba(255, 255, 255, 0.07);;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+
+.event-card.skeleton .skeleton-line::after,
+.event-card.skeleton .skeleton-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+  animation: skeleton-shimmer 1.2s infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+
+.event-card.skeleton .title { height: 18px; width: 60%; margin-bottom: 10px; }
+.event-card.skeleton .meta { height: 14px; width: 40%; margin-bottom: 14px; }
+
+.event-card.skeleton .skeleton-actions {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+
+.event-card.skeleton .skeleton-chip {
+  height: 28px; width: 88px; border-radius: 999px;
+}
+
+.event-card.skeleton .skeleton-tickets {
+  display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .event-card.skeleton .skeleton-line::after,
+  .event-card.skeleton .skeleton-chip::after {
+    animation: none;
+  }
+}

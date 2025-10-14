@@ -28,6 +28,7 @@ export default function SearchHeader(props) {
               placeholder="Search artists, venues, genres…"
               className="input-search"
               aria-label="Search query"
+              name="SearchQuery"
             />
             <input type="hidden" value={location} onChange={(e) => setLocation(e.target.value)} />
             <select
