@@ -1620,18 +1620,16 @@ body::before {
 @supports (overscroll-behavior-y: contain) {
   body { overscroll-behavior-y: contain; }
 }
-/* === Mobile overflow hot-fix (append to end of file) === */
 
-/* 1) Never use 100vw for sticky bars/cards on mobile */
 @media (max-width: 560px) {
   .search-header {
-    width: 100% !important;   /* override earlier 100vw */
-    left: 0; right: 0;        /* ensure it spans without overflow */
+    width: 100% !important;  
+    left: 0; right: 0;   
   }
   .event-card,
   .card {
     width: 100% !important;
-    max-width: 100% !important;   /* override earlier 94vw etc. */
+    max-width: 100% !important;  
   }
   .results-area,
   .search-inner {
@@ -1639,7 +1637,6 @@ body::before {
   }
 }
 
-/* 2) Make modal widths safe */
 @media (max-width: 560px) {
   .modal {
     width: 100% !important;
@@ -1647,16 +1644,14 @@ body::before {
   }
 }
 
-/* 3) Prevent flex/grid children from forcing overflow */
 .card-head > *,
 .hotel-title-row > *,
 .meta-row > *,
 .actions-row > *,
 .route > * {
-  min-width: 0;               /* let long content shrink */
+  min-width: 0;
 }
 
-/* 4) Break long words/links/chips */
 .event-title,
 .hotel-title,
 .badge,
@@ -1665,13 +1660,11 @@ body::before {
   word-break: break-word;
 }
 
-/* 5) Media should never overflow its container */
 img, video, canvas {
   max-width: 100%;
   height: auto;
 }
 
-/* 6) Safety: keep x-overflow clamped */
 html, body {
   overflow-x: hidden;
 }
