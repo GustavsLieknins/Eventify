@@ -224,6 +224,7 @@ body::before {
   max-width: var(--content-max);
   margin: 0 auto;
   padding: 0 var(--page-pad-x) 56px;
+  padding-top: 55px;
   opacity: 0;
   transform: translateY(6px);
   transition: opacity var(--dur-med) var(--ease-smooth),
@@ -716,7 +717,7 @@ body::before {
   box-shadow: none;
 }
 .main-wrapper.search-active .results-area {
-  padding-top: 6px;
+  padding-top: 55px;
 }
 
 :root {
@@ -820,7 +821,7 @@ body::before {
   opacity: 1;
   transform: none;
   pointer-events: auto;
-  padding-top: 10px;
+  padding-top: 55px;
 }
 
 .search-header.is-landing {
@@ -1315,6 +1316,7 @@ body::before {
 
 @media (max-width: 520px) {
   .results-area { padding: 0 12px 44px; }
+  /* .results-area { padding-top: 150px; } */
   .event-card, .card { padding: 12px; }
   .timing { gap: 8px; }
   .btn.small { padding: 7px 9px; }
@@ -1429,7 +1431,7 @@ body::before {
 
 
 @media (max-width: 560px) {
-  .main-wrapper.search-active .results-area { padding-top: 2px; }
+  .main-wrapper.search-active .results-area { padding-top: 70px; }
     .search-header 
   {
     width: 100vw;
@@ -1617,4 +1619,59 @@ body::before {
 }
 @supports (overscroll-behavior-y: contain) {
   body { overscroll-behavior-y: contain; }
+}
+/* === Mobile overflow hot-fix (append to end of file) === */
+
+/* 1) Never use 100vw for sticky bars/cards on mobile */
+@media (max-width: 560px) {
+  .search-header {
+    width: 100% !important;   /* override earlier 100vw */
+    left: 0; right: 0;        /* ensure it spans without overflow */
+  }
+  .event-card,
+  .card {
+    width: 100% !important;
+    max-width: 100% !important;   /* override earlier 94vw etc. */
+  }
+  .results-area,
+  .search-inner {
+    max-width: 100% !important;
+  }
+}
+
+/* 2) Make modal widths safe */
+@media (max-width: 560px) {
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* 3) Prevent flex/grid children from forcing overflow */
+.card-head > *,
+.hotel-title-row > *,
+.meta-row > *,
+.actions-row > *,
+.route > * {
+  min-width: 0;               /* let long content shrink */
+}
+
+/* 4) Break long words/links/chips */
+.event-title,
+.hotel-title,
+.badge,
+.chip {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 5) Media should never overflow its container */
+img, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 6) Safety: keep x-overflow clamped */
+html, body {
+  overflow-x: hidden;
 }
