@@ -1528,3 +1528,33 @@ body {
 .main-wrapper { isolation: isolate; }
 
 
+
+html { background: #0b1330; } 
+
+html, body {
+  min-height: 100dvh;      
+  height: auto;           
+  background-color: #0b1330;    
+  overflow-x: hidden;
+}
+
+body::before {
+  top: calc(-50dvh - env(safe-area-inset-top));
+  bottom: calc(-50dvh - env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+
+  background-size: 100% 220dvh;    
+  background-attachment: scroll;
+}
+
+.main-wrapper {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+:root {
+  --viewport-h: 100dvh;
+}
+@supports (overscroll-behavior-y: contain) {
+  body { overscroll-behavior-y: contain; }
+}
