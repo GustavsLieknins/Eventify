@@ -1534,7 +1534,6 @@ html { background: #0b1330; }
 html, body {
   min-height: 100dvh;      
   height: auto;           
-  background-color: #0b1330;    
   overflow-x: hidden;
 }
 
