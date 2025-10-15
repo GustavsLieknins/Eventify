@@ -39,3 +39,27 @@ body::before {
 }
 
 :root { color-scheme: dark; }
+
+
+html {
+  background-color: #0b1330;    
+  color-scheme: dark;
+}
+
+body {
+  background: transparent;  
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  top: calc(-50dvh - env(safe-area-inset-top));
+  bottom: calc(-50dvh - env(safe-area-inset-bottom));
+  background: linear-gradient(180deg,#080537 0%,#14245f 35%,#1f418c 65%,#1284eb 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 220dvh;
+  background-position: top center;
+  pointer-events: none;
+}
