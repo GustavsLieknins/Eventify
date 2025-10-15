@@ -402,3 +402,32 @@
     justify-self: end;  
   }
 }
+:root {
+  --ef-nav-z: 2147483598;
+}
+
+.ef-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--ef-nav-z);
+  min-height: calc(var(--ef-nav-h) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+}
+
+.ef-nav__inner {
+  height: var(--ef-nav-h);
+}
+
+html {
+  scroll-padding-top: calc(var(--ef-nav-h) + 12px);
+}
+
+.ef-sheet {
+  top: calc(var(--ef-nav-h) + env(safe-area-inset-top)) !important;
+}
+
+.ef-burger { -webkit-tap-highlight-color: transparent; }
+
+
